@@ -3,10 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0d0d0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="XDJ-RR">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <title>XDJ-RR</title>
 <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
+<!-- Mobile Toolbar (visible only on mobile) -->
+<div class="mobile-toolbar" id="mobileToolbar">
+  <div class="mobile-deck-switcher">
+    <button class="mobile-deck-tab active" id="mDeckTab1" onclick="switchMobileDeck(0)">D1</button>
+    <button class="mobile-deck-tab" id="mDeckTab2" onclick="switchMobileDeck(1)">D2</button>
+  </div>
+  <div class="mobile-toolbar-controls">
+    <button class="mobile-play-btn" id="mPlay" onclick="decks[currentMobileDeck].togglePlay()">▶</button>
+    <button class="mobile-cue-btn" id="mCue" onclick="decks[currentMobileDeck].cue()">CUE</button>
+    <button class="mobile-browser-btn" id="mBrowser" onclick="toggleMobileBrowser()">🎵</button>
+    <button class="mobile-mixer-btn" id="mMixer" onclick="toggleMobileMixer()">MIX</button>
+    <button class="rec-btn" id="mRecBtn" onclick="toggleRecording()"><span class="rec-dot"></span></button>
+  </div>
+</div>
 <div class="topbar">
   <span class="logo">PIONEER XDJ-RR</span>
   <div class="topbar-controls">
@@ -406,5 +426,7 @@
 <script src="/sampler.js"></script>
 <script src="/discover.js"></script>
 <script src="/app.js"></script>
+<script src="/mobile.js"></script>
+<script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});</script>
 </body>
 </html>

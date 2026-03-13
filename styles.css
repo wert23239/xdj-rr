@@ -565,6 +565,11 @@ body.light-theme .deck-header{background:linear-gradient(180deg,#eee 0%,#e0e0e0 
 .dl-title{flex:1;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dl-progress{font-size:10px;color:#e8a030;font-family:'Courier New',monospace;flex-shrink:0}
 
+/* ============ Mobile Toolbar (hidden on desktop) ============ */
+.mobile-toolbar{display:none}
+.mobile-hidden{display:none !important}
+.mobile-backdrop{display:none}
+
 /* ============ Mobile ============ */
 @media (max-width: 900px) {
   .browser{width:180px}
@@ -572,26 +577,128 @@ body.light-theme .deck-header{background:linear-gradient(180deg,#eee 0%,#e0e0e0 
   .jog{width:120px;height:120px}
   .jog-tick{transform-origin:50% 57px}
 }
+
 @media (max-width: 700px) {
-  .main{flex-direction:column}
-  .browser{width:100%;height:120px;border-right:none;border-bottom:1px solid #222}
-  .browser.hidden{height:0}
-  .track-list{display:flex;overflow-x:auto;overflow-y:hidden}
-  .track-item{min-width:150px;flex-shrink:0}
+  /* ---- Mobile Toolbar ---- */
+  .mobile-toolbar{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:linear-gradient(180deg,#1a1a1e 0%,#111114 100%);border-bottom:1px solid #2a2a2e;flex-shrink:0;z-index:600;gap:8px}
+  .mobile-deck-switcher{display:flex;gap:2px}
+  .mobile-deck-tab{padding:8px 18px;border:2px solid #3a3a40;background:linear-gradient(180deg,#222226 0%,#1a1a1e 100%);color:#888;border-radius:6px;font-size:14px;font-weight:900;cursor:pointer;letter-spacing:1px;min-width:50px;min-height:44px;transition:all .15s}
+  .mobile-deck-tab:first-child{border-color:var(--deck1-dim);color:var(--deck1-dim)}
+  .mobile-deck-tab:last-child{border-color:var(--deck2-dim);color:var(--deck2-dim)}
+  .mobile-deck-tab:first-child.active{border-color:var(--deck1);color:var(--deck1);background:linear-gradient(180deg,#0a1a2a 0%,#050f1a 100%);box-shadow:0 0 10px rgba(0,170,255,0.3)}
+  .mobile-deck-tab:last-child.active{border-color:var(--deck2);color:var(--deck2);background:linear-gradient(180deg,#2a1a0a 0%,#1a0f05 100%);box-shadow:0 0 10px rgba(255,136,0,0.3)}
+  .mobile-toolbar-controls{display:flex;gap:6px;align-items:center}
+  .mobile-play-btn,.mobile-cue-btn{min-width:44px;min-height:44px;border-radius:8px;border:none;font-size:18px;font-weight:700;cursor:pointer;transition:all .1s}
+  .mobile-play-btn{background:linear-gradient(180deg,#1a3a1a 0%,#0a2a0a 100%);color:var(--green);border:2px solid #1a4a1a}
+  .mobile-play-btn.active{background:linear-gradient(180deg,var(--green) 0%,#0a6a3a 100%);color:#000;box-shadow:0 0 12px rgba(0,204,102,0.4)}
+  .mobile-cue-btn{background:linear-gradient(180deg,#3a1a1a 0%,#2a0a0a 100%);color:var(--red);border:2px solid #4a1a1a;font-size:12px}
+  .mobile-browser-btn,.mobile-mixer-btn{min-width:44px;min-height:44px;border-radius:8px;border:1px solid #3a3a40;background:linear-gradient(180deg,#222226 0%,#1a1a1e 100%);color:#888;font-size:16px;cursor:pointer;transition:all .15s}
+  .mobile-browser-btn.active,.mobile-mixer-btn.active{border-color:#0af;color:#0af;box-shadow:0 0 8px rgba(0,170,255,0.3)}
+  .mobile-toolbar .rec-btn{min-width:36px;min-height:36px;padding:6px;border-radius:8px}
+  .mobile-toolbar .rec-btn .rec-dot{width:12px;height:12px}
+
+  /* ---- Hide desktop topbar on mobile ---- */
+  .topbar{display:none}
+
+  /* ---- Layout ---- */
+  .main{flex-direction:column;padding-top:0}
+  
+  /* ---- Browser as full-screen overlay ---- */
+  .browser{width:100%;height:0;overflow:hidden;border:none;transition:height .3s;position:relative}
+  .browser.hidden{height:0;overflow:hidden}
+  .browser.mobile-browser-overlay{position:fixed;top:0;left:0;right:0;bottom:0;height:100vh !important;width:100vw !important;z-index:800;background:#0d0d0f;overflow-y:auto;border:none}
+  .browser.mobile-browser-overlay .browser-header{padding:12px 16px;font-size:14px;position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;align-items:center}
+  .browser.mobile-browser-overlay .search-box{padding:10px 16px}
+  .browser.mobile-browser-overlay .search-box input{font-size:16px;padding:10px 14px}
+  .browser.mobile-browser-overlay .track-list{display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden}
+  .browser.mobile-browser-overlay .track-item{min-width:unset;flex-shrink:unset;padding:12px 16px;font-size:14px}
+  .browser.mobile-browser-overlay .track-item .load-btns{opacity:1;gap:8px}
+  .browser.mobile-browser-overlay .load-btn{padding:8px 16px;font-size:12px;min-height:44px;display:flex;align-items:center;justify-content:center}
+  .browser.mobile-browser-overlay .sort-btn{padding:6px 12px;font-size:12px;min-height:36px}
+  .browser.mobile-browser-overlay .sort-controls{padding:8px 16px}
+
+  /* ---- Track list normal (hidden on mobile until overlay) ---- */
+  .track-list{display:flex;flex-direction:column;overflow-y:auto}
+  .track-item{min-width:unset}
   .track-item .load-btns{opacity:1}
-  .decks-area{flex-direction:column;overflow:auto}
-  .mixer{width:100%;flex-direction:row;flex-wrap:wrap;gap:12px;padding:8px}
-  .mixer > *{flex:1;min-width:80px}
+  
+  /* ---- Decks area: show one at a time ---- */
+  .decks-area{flex-direction:column;overflow-y:auto;gap:0;padding:4px}
+  
+  /* ---- Mixer as slide-up bottom sheet ---- */
+  .mixer{width:100%;position:fixed;bottom:-100%;left:0;right:0;z-index:700;max-height:70vh;overflow-y:auto;border-radius:16px 16px 0 0;border:1px solid #3a3a40;border-bottom:none;transition:bottom .3s ease;flex-direction:column;padding:12px;gap:8px;box-shadow:0 -8px 30px rgba(0,0,0,0.6)}
+  .mixer.mobile-mixer-sheet{bottom:0}
+  .mixer .mixer-label{font-size:12px;padding:4px 0}
   .eq-section{flex-direction:row;gap:16px}
-  .faders-section{height:60px}
-  .vol-fader{height:50px}
-  .meter{height:50px}
-  .waveforms{height:80px}
-  .overview-waveforms{height:20px}
-  .jog{width:100px;height:100px}
-  .jog-tick{transform-origin:50% 48px}
-  .deck{padding:8px;gap:4px}
-  .transport button{padding:10px 16px;font-size:13px}
-  .hotcue-btn{width:36px;height:28px;font-size:12px}
-  .nudge-btn{padding:6px 14px;font-size:12px}
+  .faders-section{height:80px}
+  .vol-fader{height:60px}
+  .meter{height:60px}
+
+  /* ---- Mobile backdrop ---- */
+  .mobile-backdrop{display:block;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:650;backdrop-filter:blur(2px)}
+
+  /* ---- Waveforms compact ---- */
+  .waveforms{height:70px}
+  .overview-waveforms{height:18px}
+  
+  /* ---- Hide non-essential on mobile ---- */
+  .parallel-waveforms,.parallel-wf-btn{display:none !important}
+  .phase-meter-bar{display:none}
+  .deck-label-big{display:none}
+  .beat-jump-section{display:none}
+  .nudge-section{display:none}
+  .tap-section{display:none}
+  .history-panel{display:none}
+  .playlist-panel{display:none}
+  .tracklist-panel{max-height:100px}
+  .discover-panel{flex-direction:column}
+  .discover-section:last-child{max-width:none}
+
+  /* ---- Deck styling ---- */
+  .deck{padding:8px;gap:6px;border-radius:8px}
+  .deck-header{padding:6px 8px}
+  
+  /* ---- Large jog wheel (60% screen width) ---- */
+  .jog-container{min-height:unset;flex:unset;padding:8px 0}
+  .jog{width:60vw;height:60vw;max-width:280px;max-height:280px}
+  .jog-tick{transform-origin:50% calc(30vw - 3px)}
+  .jog-inner{width:80px;height:80px}
+  
+  /* ---- Touch-optimized buttons (min 44px) ---- */
+  .transport{gap:6px;flex-wrap:nowrap;justify-content:center}
+  .transport button{padding:12px 14px;font-size:13px;min-height:44px;min-width:44px;border-radius:8px}
+  .hotcue-section{gap:6px}
+  .hotcue-btn{width:44px;height:38px;font-size:14px;font-weight:900;border-radius:6px}
+  .loop-section{gap:4px}
+  .loop-btn{padding:8px 12px;font-size:11px;min-height:38px;border-radius:6px}
+  .headphone-section{gap:4px}
+  .headphone-btn,.slip-btn,.quantize-btn,.log-btn{min-height:38px;padding:6px 12px;font-size:11px;border-radius:6px}
+  
+  /* ---- Tempo slider wider ---- */
+  .tempo-section{padding:2px 0}
+  .tempo-slider{width:100%}
+  
+  /* ---- FX buttons ---- */
+  .fx-btn{padding:6px 10px;font-size:10px;min-height:36px}
+  
+  /* ---- Sampler pads ---- */
+  .sampler-pad{width:60px;height:44px;font-size:9px;border-radius:6px}
+  
+  /* ---- BPM display ---- */
+  .bpm-display{font-size:18px}
+  
+  /* ---- Progress bars ---- */
+  .progress-bars{height:8px}
+  .progress-bar{height:8px}
+  
+  /* ---- VU meters compact ---- */
+  .vu-meter-row{height:6px}
+  .vu-segment{width:3px;height:6px}
+  
+  /* ---- Crossfader in mixer ---- */
+  .crossfader-section{padding:8px 0}
+  .crossfader::-webkit-slider-thumb{width:44px;height:24px}
+  
+  /* ---- Knobs slightly larger for touch ---- */
+  :root{--knob-size:48px}
 }
