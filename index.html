@@ -50,6 +50,7 @@
     <button class="midi-learn-btn" id="midiLearnBtn" onclick="toggleMIDILearn()" data-tooltip="MIDI Learn mode">🎹 MIDI LEARN</button>
     <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" data-tooltip="Toggle fullscreen (F11)">⛶</button>
     <button class="autodj-btn" id="autoDJBtn" onclick="toggleAutoDJ()" data-tooltip="Auto-DJ mode">🤖 AUTO-DJ</button>
+    <button class="info-btn" id="infoBtn" onclick="toggleAboutPanel()" data-tooltip="About XDJ-RR">ⓘ</button>
     <div class="theme-accent-selector" id="themeAccentSelector">
       <button class="accent-btn active" data-accent="classic" onclick="setAccentTheme('classic')" title="Classic (Blue/Orange)">🔵</button>
       <button class="accent-btn" data-accent="neon" onclick="setAccentTheme('neon')" title="Neon (Cyan/Magenta)">🟣</button>
@@ -475,19 +476,69 @@
 <div class="shortcuts-overlay" id="shortcutsOverlay" onclick="if(event.target===this)toggleShortcuts()">
   <div class="shortcuts-box">
     <h2>⌨️ Keyboard Shortcuts</h2>
+    <div class="sc-section-label">🎛️ Transport</div>
     <div class="sc-row"><span class="sc-key">Q</span><span class="sc-desc">Play/Pause Deck 1</span></div>
     <div class="sc-row"><span class="sc-key">W</span><span class="sc-desc">Cue Deck 1</span></div>
     <div class="sc-row"><span class="sc-key">P</span><span class="sc-desc">Play/Pause Deck 2</span></div>
     <div class="sc-row"><span class="sc-key">O</span><span class="sc-desc">Cue Deck 2</span></div>
-    <div class="sc-row"><span class="sc-key">E</span><span class="sc-desc">Sync Deck 1</span></div>
-    <div class="sc-row"><span class="sc-key">I</span><span class="sc-desc">Sync Deck 2</span></div>
-    <div class="sc-row"><span class="sc-key">1–4</span><span class="sc-desc">Hot Cues Deck 1</span></div>
-    <div class="sc-row"><span class="sc-key">7–0</span><span class="sc-desc">Hot Cues Deck 2</span></div>
+    <div class="sc-row"><span class="sc-key">E</span><span class="sc-desc">Sync Deck 1 to Deck 2</span></div>
+    <div class="sc-row"><span class="sc-key">I</span><span class="sc-desc">Sync Deck 2 to Deck 1</span></div>
+    <div class="sc-section-label">🎯 Hot Cues</div>
+    <div class="sc-row"><span class="sc-key">1–4</span><span class="sc-desc">Hot Cues Deck 1 (Shift+click to delete)</span></div>
+    <div class="sc-row"><span class="sc-key">7–0</span><span class="sc-desc">Hot Cues Deck 2 (Shift+click to delete)</span></div>
+    <div class="sc-section-label">🎚️ Nudge & Tempo</div>
     <div class="sc-row"><span class="sc-key">Z / X</span><span class="sc-desc">Nudge Deck 1 −/+</span></div>
     <div class="sc-row"><span class="sc-key">, / .</span><span class="sc-desc">Nudge Deck 2 −/+</span></div>
+    <div class="sc-section-label">🔀 Crossfader & Mix</div>
+    <div class="sc-row"><span class="sc-key">Space</span><span class="sc-desc">Auto-crossfade toggle</span></div>
+    <div class="sc-section-label">🎹 Performance</div>
+    <div class="sc-row"><span class="sc-key">Slicer</span><span class="sc-desc">Click pads 1–8 (hold to loop slice)</span></div>
+    <div class="sc-row"><span class="sc-key">Roll</span><span class="sc-desc">Click pads 1/16–1 (hold to roll)</span></div>
+    <div class="sc-row"><span class="sc-key">Stutter</span><span class="sc-desc">Click pads 1/4–1/16 (hold for effect)</span></div>
+    <div class="sc-row"><span class="sc-key">TAPE</span><span class="sc-desc">Click for tape stop/start effect</span></div>
+    <div class="sc-row"><span class="sc-key">REV</span><span class="sc-desc">Hold for reverse playback</span></div>
+    <div class="sc-row"><span class="sc-key">VINYL</span><span class="sc-desc">Toggle vinyl brake on stop</span></div>
+    <div class="sc-section-label">📐 Interface</div>
     <div class="sc-row"><span class="sc-key">B</span><span class="sc-desc">Toggle Browser</span></div>
     <div class="sc-row"><span class="sc-key">?</span><span class="sc-desc">Show/Hide Shortcuts</span></div>
-    <div class="sc-row"><span class="sc-key">Space</span><span class="sc-desc">Auto-crossfade toggle</span></div>
+    <div class="sc-row"><span class="sc-key">F11</span><span class="sc-desc">Toggle Fullscreen</span></div>
+    <div class="sc-section-label">🔧 Modes</div>
+    <div class="sc-row"><span class="sc-key">📊 STATS</span><span class="sc-desc">View set statistics</span></div>
+    <div class="sc-row"><span class="sc-key">🤖 AUTO-DJ</span><span class="sc-desc">Automatic track loading & mixing</span></div>
+    <div class="sc-row"><span class="sc-key">🎹 MIDI LEARN</span><span class="sc-desc">Map MIDI controller to controls</span></div>
+    <div class="sc-row"><span class="sc-key">∥ WF</span><span class="sc-desc">Parallel waveform display</span></div>
+    <div class="sc-row"><span class="sc-key">MINI</span><span class="sc-desc">Minimal mixer layout</span></div>
+    <div class="sc-row"><span class="sc-key">PERFORMANCE</span><span class="sc-desc">Hide browser, expand waveforms</span></div>
+    <div class="sc-row"><span class="sc-key">🔍 DISCOVER</span><span class="sc-desc">Search & download from YouTube/SoundCloud</span></div>
+  </div>
+</div>
+
+<!-- ABOUT PANEL -->
+<div class="about-overlay" id="aboutOverlay" onclick="if(event.target===this)toggleAboutPanel()">
+  <div class="about-box">
+    <h2>ⓘ About XDJ-RR</h2>
+    <div class="about-version">v25</div>
+    <div class="about-content">
+      <div class="stat-row"><span class="stat-label">Tracks in Library</span><span class="stat-value" id="aboutTrackCount">—</span></div>
+      <div class="stat-row"><span class="stat-label">Waveform Cache</span><span class="stat-value" id="aboutWaveformStatus">—</span></div>
+      <div class="stat-row"><span class="stat-label">Features</span><span class="stat-value">50+</span></div>
+      <div class="stat-row"><span class="stat-label">Built With</span><span class="stat-value">Web Audio API + Express</span></div>
+    </div>
+    <div class="about-features">
+      <div class="about-feature-label">Key Features</div>
+      <div class="about-feature-list">
+        2-Deck Mixing · BPM Detection · Key Detection · Harmonic Mixing ·
+        Beat Sync · Slicer · Beat Roll · Stutter · Tape Stop · Vinyl Brake ·
+        3-Band EQ with Kill · Color FX · 6 Beat FX · Hot Cues · Loops ·
+        Parallel Waveforms · Spectrum Analyzer · Mix Recording ·
+        Tracklist Logging · Playlists · Song Discovery · Sampler ·
+        Auto-DJ · Auto-Mix Transitions · MIDI Support · MIDI Learn ·
+        Energy Meter · Phase Meter · AI Mix Suggestions ·
+        3 Color Themes · Light/Dark Mode · Performance Mode ·
+        Mobile Responsive · PWA Support
+      </div>
+    </div>
+    <a class="about-link" href="https://github.com/xdj-rr" target="_blank" rel="noopener">GitHub Repository →</a>
   </div>
 </div>
 
@@ -543,15 +594,15 @@
   </div>
 </div>
 
-<!-- JS modules: order matters (effects & waveform before app) -->
+<!-- JS modules: critical first, non-critical deferred -->
 <script src="/effects.js"></script>
 <script src="/waveform.js"></script>
 <script src="/tracklist.js"></script>
 <script src="/sampler.js"></script>
-<script src="/discover.js"></script>
 <script src="/app.js"></script>
-<script src="/midi.js"></script>
-<script src="/mobile.js"></script>
+<script src="/discover.js" defer></script>
+<script src="/midi.js" defer></script>
+<script src="/mobile.js" defer></script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});</script>
 </body>
 </html>

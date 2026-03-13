@@ -1270,6 +1270,81 @@ test.describe('Color Accent Themes', () => {
 });
 
 // ============================================================
+// 65. ABOUT PANEL
+// ============================================================
+
+test.describe('About Panel', () => {
+  test('info button exists', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#infoBtn')).toBeVisible();
+  });
+
+  test('info button opens about panel', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#infoBtn').click();
+    await expect(page.locator('#aboutOverlay')).toBeVisible();
+    await expect(page.locator('.about-box')).toContainText('About XDJ-RR');
+    await expect(page.locator('.about-version')).toContainText('v25');
+  });
+
+  test('about panel shows track count', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#infoBtn').click();
+    await page.waitForTimeout(500);
+    const count = await page.locator('#aboutTrackCount').textContent();
+    expect(count).not.toBe('—');
+  });
+
+  test('clicking overlay closes about panel', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#infoBtn').click();
+    await expect(page.locator('#aboutOverlay')).toBeVisible();
+    await page.locator('#aboutOverlay').click({ position: { x: 5, y: 5 } });
+    await expect(page.locator('#aboutOverlay')).not.toBeVisible();
+  });
+});
+
+// ============================================================
+// 66. WAVEFORM PRE-COMPUTATION
+// ============================================================
+
+test.describe('Waveform Pre-computation', () => {
+  test('health endpoint includes waveform precompute status', async ({ request }) => {
+    const resp = await request.get('/api/health');
+    const data = await resp.json();
+    expect(data.version).toBe('v25');
+    expect(data.waveformPrecompute).toBeDefined();
+    expect(data.waveformPrecompute.total).toBeGreaterThan(0);
+    expect(data.waveformPrecompute.progress).toBeGreaterThanOrEqual(0);
+  });
+});
+
+// ============================================================
+// 67. UPDATED SHORTCUTS MODAL
+// ============================================================
+
+test.describe('Updated Shortcuts Modal', () => {
+  test('shortcuts modal has section labels', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#helpBtn').click();
+    await expect(page.locator('.shortcuts-box')).toContainText('Transport');
+    await expect(page.locator('.shortcuts-box')).toContainText('Hot Cues');
+    await expect(page.locator('.shortcuts-box')).toContainText('Performance');
+    await expect(page.locator('.shortcuts-box')).toContainText('Interface');
+    await expect(page.locator('.shortcuts-box')).toContainText('Modes');
+  });
+
+  test('shortcuts modal includes new features', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#helpBtn').click();
+    await expect(page.locator('.shortcuts-box')).toContainText('AUTO-DJ');
+    await expect(page.locator('.shortcuts-box')).toContainText('MIDI LEARN');
+    await expect(page.locator('.shortcuts-box')).toContainText('Fullscreen');
+    await expect(page.locator('.shortcuts-box')).toContainText('DISCOVER');
+  });
+});
+
+// ============================================================
 // 64. PARALLEL WAVEFORM BEAT-SYNC
 // ============================================================
 

@@ -58,6 +58,58 @@ const sbHeaders = { 'Content-Type': 'application/json', 'apikey': SUPABASE_SERVI
 
 const startTime = Date.now();
 
+// ==================== WAVEFORM PRE-COMPUTATION ====================
+const waveformPrecompute = { total: 0, done: 0, running: false, errors: 0 };
+
+function precomputeAllWaveforms() {
+  const exts = new Set(['.mp3', '.wav', '.aac', '.m4a', '.ogg', '.flac', '.aif', '.aiff']);
+  let files;
+  try {
+    files = fs.readdirSync(MUSIC_DIR).filter(f => exts.has(path.extname(f).toLowerCase()));
+  } catch { return; }
+  
+  waveformPrecompute.total = files.length;
+  waveformPrecompute.done = 0;
+  waveformPrecompute.running = true;
+  waveformPrecompute.errors = 0;
+  
+  console.log(`[Precompute] Starting waveform pre-computation for ${files.length} tracks...`);
+  
+  let idx = 0;
+  function processNext() {
+    if (idx >= files.length) {
+      waveformPrecompute.running = false;
+      console.log(`[Precompute] Complete! ${waveformPrecompute.done}/${waveformPrecompute.total} tracks (${waveformPrecompute.errors} errors)`);
+      return;
+    }
+    const filename = files[idx++];
+    const cached = readCache(filename);
+    if (cached && cached.peaks && cached.peaks.length > 0) {
+      waveformPrecompute.done++;
+      setImmediate(processNext);
+      return;
+    }
+    try {
+      const filePath = path.join(MUSIC_DIR, filename);
+      const peaks = extractPeaks(filePath);
+      const stat = fs.statSync(filePath);
+      const existing = cached || {};
+      const info = { ...existing, filename, size: stat.size, peaks: peaks || [], cachedAt: Date.now() };
+      writeCache(filename, info);
+      waveformPrecompute.done++;
+    } catch(e) {
+      waveformPrecompute.errors++;
+      waveformPrecompute.done++;
+    }
+    // Use setImmediate to not block the event loop
+    setImmediate(processNext);
+  }
+  processNext();
+}
+
+// Start pre-computation after server starts (with small delay)
+setTimeout(precomputeAllWaveforms, 2000);
+
 // ==================== CACHE HELPERS ====================
 function fileHash(filename) {
   return crypto.createHash('md5').update(filename).digest('hex');
@@ -157,9 +209,17 @@ app.get('/api/health', (req, res) => {
   } catch {}
   res.json({
     status: 'ok',
+    version: 'v25',
     tracks: trackCount,
     uptime: Math.floor((Date.now() - startTime) / 1000),
-    cacheDir: CACHE_DIR
+    cacheDir: CACHE_DIR,
+    waveformPrecompute: {
+      total: waveformPrecompute.total,
+      done: waveformPrecompute.done,
+      running: waveformPrecompute.running,
+      errors: waveformPrecompute.errors,
+      progress: waveformPrecompute.total > 0 ? Math.round((waveformPrecompute.done / waveformPrecompute.total) * 100) : 0
+    }
   });
 });
 

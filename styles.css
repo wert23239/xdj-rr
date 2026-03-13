@@ -840,6 +840,28 @@ body.accent-minimal .load-btn.d2:hover{background:var(--deck2);color:#000}
 body.accent-minimal .bpm-display{color:#aaa;text-shadow:none}
 body.accent-minimal .topbar .logo{color:#666}
 
+/* ============ Info Button ============ */
+.info-btn{padding:4px 10px;border:1px solid #3a3a40;background:linear-gradient(180deg,#2a2a30 0%,#1a1a1e 100%);color:#888;border-radius:var(--button-radius);font-size:12px;cursor:pointer;font-weight:700;transition:all .15s;box-shadow:0 1px 3px rgba(0,0,0,0.4);line-height:1}
+.info-btn:hover{border-color:#0af;color:#0af}
+
+/* ============ Shortcuts Section Labels ============ */
+.sc-section-label{font-size:10px;color:#0af;text-transform:uppercase;letter-spacing:1px;font-weight:700;padding:8px 0 4px;margin-top:4px;border-top:1px solid #2a2a2e}
+.sc-section-label:first-of-type{border-top:none;margin-top:0}
+
+/* ============ About Panel ============ */
+.about-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:1000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+.about-overlay.open{display:flex}
+.about-box{background:linear-gradient(180deg,#222226 0%,#1a1a1e 100%);border:1px solid #3a3a40;border-radius:10px;padding:24px 32px;max-width:460px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,0.6);text-align:center}
+.about-box h2{color:#ccc;font-size:18px;margin-bottom:4px}
+.about-version{font-size:28px;font-weight:900;color:#0af;font-family:'Courier New',monospace;margin-bottom:16px;text-shadow:0 0 12px rgba(0,170,255,0.4)}
+.about-content{text-align:left;margin-bottom:16px}
+.about-content .stat-row{font-size:12px}
+.about-features{background:#111114;border:1px solid #2a2a2e;border-radius:6px;padding:10px 14px;margin-bottom:12px;text-align:left}
+.about-feature-label{font-size:9px;color:#555;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.about-feature-list{font-size:11px;color:#888;line-height:1.6}
+.about-link{color:#0af;font-size:12px;text-decoration:none;display:inline-block;padding:6px 16px;border:1px solid #0af;border-radius:4px;transition:all .15s}
+.about-link:hover{background:#0af;color:#000}
+
 /* Beat-sync alignment lines in parallel waveforms */
 .beat-sync-line{position:absolute;width:1px;height:100%;top:0;background:rgba(255,255,0,0.5);z-index:2;pointer-events:none}
 

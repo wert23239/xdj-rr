@@ -1413,6 +1413,26 @@ window.addEventListener('beforeunload', saveDeckState);
 // ==================== SHORTCUTS ====================
 function toggleShortcuts() { document.getElementById('shortcutsOverlay').classList.toggle('open'); }
 
+// ==================== ABOUT PANEL ====================
+function toggleAboutPanel() {
+  const overlay = document.getElementById('aboutOverlay');
+  overlay.classList.toggle('open');
+  if (overlay.classList.contains('open')) {
+    // Fetch health data for track count and waveform status
+    fetch('/api/health').then(r => r.json()).then(data => {
+      document.getElementById('aboutTrackCount').textContent = data.tracks || '—';
+      const wf = data.waveformPrecompute;
+      if (wf) {
+        if (wf.running) {
+          document.getElementById('aboutWaveformStatus').textContent = wf.progress + '% (' + wf.done + '/' + wf.total + ')';
+        } else {
+          document.getElementById('aboutWaveformStatus').textContent = wf.done + '/' + wf.total + ' ready';
+        }
+      }
+    }).catch(() => {});
+  }
+}
+
 // ==================== MIX RECORDING ====================
 let mixRecording = false, mixMediaRecorder = null, mixChunks = [];
 
