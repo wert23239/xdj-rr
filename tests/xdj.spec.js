@@ -1082,3 +1082,97 @@ test.describe('Session Select', () => {
     await expect(page.locator('#sessionSelect')).toBeAttached();
   });
 });
+
+// ============================================================
+// 55. SPECTRUM ANALYZERS
+// ============================================================
+
+test.describe('Spectrum Analyzers', () => {
+  test('deck spectrum canvases exist', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#spectrum1')).toBeAttached();
+    await expect(page.locator('#spectrum2')).toBeAttached();
+  });
+
+  test('master spectrum canvas exists', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#masterSpectrum')).toBeAttached();
+  });
+
+  test('spectrum row is visible', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('.spectrum-row')).toBeVisible();
+  });
+});
+
+// ============================================================
+// 56. SLICER MODE
+// ============================================================
+
+test.describe('Slicer Mode', () => {
+  test('slicer sections exist for both decks', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#slicerSection0')).toBeVisible();
+    await expect(page.locator('#slicerSection1')).toBeVisible();
+  });
+
+  test('8 slicer pads per deck', async ({ page }) => {
+    await page.goto('/');
+    expect(await page.locator('#slicerSection0 .slicer-pad').count()).toBe(8);
+    expect(await page.locator('#slicerSection1 .slicer-pad').count()).toBe(8);
+  });
+
+  test('slicer pads are clickable without crash', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#slicerSection0 .slicer-pad').first().click();
+    await expect(page.locator('.logo')).toBeVisible();
+  });
+});
+
+// ============================================================
+// 57. ROLL EFFECT
+// ============================================================
+
+test.describe('Roll Effect', () => {
+  test('roll sections exist for both decks', async ({ page }) => {
+    await page.goto('/');
+    const rollSections = page.locator('.roll-section');
+    expect(await rollSections.count()).toBe(2);
+  });
+
+  test('5 roll pads per deck', async ({ page }) => {
+    await page.goto('/');
+    const rollPads = page.locator('.roll-pads');
+    expect(await rollPads.first().locator('.roll-pad').count()).toBe(5);
+    expect(await rollPads.last().locator('.roll-pad').count()).toBe(5);
+  });
+});
+
+// ============================================================
+// 58. FX WET/DRY
+// ============================================================
+
+test.describe('FX Wet/Dry', () => {
+  test('FX wet/dry knobs exist for both channels', async ({ page }) => {
+    await page.goto('/');
+    const wetDryKnobs = page.locator('.fx-wetdry-knob');
+    expect(await wetDryKnobs.count()).toBe(2);
+  });
+
+  test('FX wet/dry row is visible', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('.fx-wetdry-row')).toBeVisible();
+  });
+});
+
+// ============================================================
+// 59. AUTO-MIX PROGRESS
+// ============================================================
+
+test.describe('Auto-Mix Progress', () => {
+  test('auto-mix progress indicator exists (hidden by default)', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#automixProgress')).toBeAttached();
+    await expect(page.locator('#automixProgress')).not.toBeVisible();
+  });
+});

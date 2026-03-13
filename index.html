@@ -73,6 +73,11 @@
         <div class="wf-zoom"><button onclick="cycleWfColor(1)" class="wf-color-toggle" id="wfColorBtn1" title="Waveform color mode">🎨</button><button onclick="wfZoom(1,-1)" title="Zoom out">−</button><button onclick="wfZoom(1,1)" title="Zoom in">+</button></div>
       </div>
     </div>
+    <div class="spectrum-row">
+      <canvas class="deck-spectrum" id="spectrum1"></canvas>
+      <canvas class="master-spectrum" id="masterSpectrum"></canvas>
+      <canvas class="deck-spectrum" id="spectrum2"></canvas>
+    </div>
     <div class="phase-meter-bar">
       <label>Phase</label>
       <div class="phase-meter">
@@ -116,6 +121,29 @@
           <button class="loop-btn" data-deck="0" data-beats="2" onclick="toggleLoop(0,2,this)">2</button>
           <button class="loop-btn" data-deck="0" data-beats="4" onclick="toggleLoop(0,4,this)">4</button>
           <button class="loop-btn" data-deck="0" data-beats="8" onclick="toggleLoop(0,8,this)">8</button>
+        </div>
+        <div class="slicer-section" id="slicerSection0">
+          <span style="font-size:9px;color:#555">SLICER</span>
+          <div class="slicer-pads">
+            <button class="slicer-pad" onmousedown="slicerTrigger(0,0)" onmouseup="slicerRelease(0)" ontouchstart="slicerTrigger(0,0)" ontouchend="slicerRelease(0)">1</button>
+            <button class="slicer-pad" onmousedown="slicerTrigger(0,1)" onmouseup="slicerRelease(0)" ontouchstart="slicerTrigger(0,1)" ontouchend="slicerRelease(0)">2</button>
+            <button class="slicer-pad" onmousedown="slicerTrigger(0,2)" onmouseup="slicerRelease(0)" ontouchstart="slicerTrigger(0,2)" ontouchend="slicerRelease(0)">3</button>
+            <button class="slicer-pad" onmousedown="slicerTrigger(0,3)" onmouseup="slicerRelease(0)" ontouchstart="slicerTrigger(0,3)" ontouchend="slicerRelease(0)">4</button>
+            <button class="slicer-pad" onmousedown="slicerTrigger(0,4)" onmouseup="slicerRelease(0)" ontouchstart="slicerTrigger(0,4)" ontouchend="slicerRelease(0)">5</button>
+            <button class="slicer-pad" onmousedown="slicerTrigger(0,5)" onmouseup="slicerRelease(0)" ontouchstart="slicerTrigger(0,5)" ontouchend="slicerRelease(0)">6</button>
+            <button class="slicer-pad" onmousedown="slicerTrigger(0,6)" onmouseup="slicerRelease(0)" ontouchstart="slicerTrigger(0,6)" ontouchend="slicerRelease(0)">7</button>
+            <button class="slicer-pad" onmousedown="slicerTrigger(0,7)" onmouseup="slicerRelease(0)" ontouchstart="slicerTrigger(0,7)" ontouchend="slicerRelease(0)">8</button>
+          </div>
+        </div>
+        <div class="roll-section">
+          <span style="font-size:9px;color:#555">ROLL</span>
+          <div class="roll-pads">
+            <button class="roll-pad" onmousedown="rollStart(0,0.0625)" onmouseup="rollStop(0)" ontouchstart="rollStart(0,0.0625)" ontouchend="rollStop(0)">1/16</button>
+            <button class="roll-pad" onmousedown="rollStart(0,0.125)" onmouseup="rollStop(0)" ontouchstart="rollStart(0,0.125)" ontouchend="rollStop(0)">1/8</button>
+            <button class="roll-pad" onmousedown="rollStart(0,0.25)" onmouseup="rollStop(0)" ontouchstart="rollStart(0,0.25)" ontouchend="rollStop(0)">1/4</button>
+            <button class="roll-pad" onmousedown="rollStart(0,0.5)" onmouseup="rollStop(0)" ontouchstart="rollStart(0,0.5)" ontouchend="rollStop(0)">1/2</button>
+            <button class="roll-pad" onmousedown="rollStart(0,1)" onmouseup="rollStop(0)" ontouchstart="rollStart(0,1)" ontouchend="rollStop(0)">1</button>
+          </div>
         </div>
         <div class="transport">
           <button class="btn-cue" id="cue1">CUE</button>
@@ -239,9 +267,13 @@
         <div class="automix-section">
           <label>Auto-Mix</label>
           <div class="automix-btns">
-            <button class="automix-btn" onclick="autoMixTransition('smooth16')" title="Smooth 16-bar blend">16-BAR</button>
+            <button class="automix-btn" onclick="autoMixTransition('smooth16')" title="Smooth 16-bar blend with EQ transition">16-BAR</button>
             <button class="automix-btn" onclick="autoMixTransition('echoOut')" title="Echo out transition">ECHO OUT</button>
             <button class="automix-btn" onclick="autoMixTransition('cutSwap')" title="Instant cut swap">CUT SWAP</button>
+          </div>
+          <div class="automix-progress" id="automixProgress" style="display:none">
+            <div class="automix-progress-bar"><div class="automix-progress-fill" id="automixProgressFill"></div></div>
+            <span class="automix-progress-text" id="automixProgressText">—</span>
           </div>
         </div>
         <div class="section-divider"></div>
@@ -272,6 +304,12 @@
             <button class="fx-btn ch2" data-fx="flanger" data-ch="1" onclick="toggleFX(this)">Flanger</button>
             <button class="fx-btn ch2" data-fx="phaser" data-ch="1" onclick="toggleFX(this)">Phaser</button>
             <button class="fx-btn ch2" data-fx="bitcrush" data-ch="1" onclick="toggleFX(this)">Crush</button>
+          </div>
+          <div class="fx-wetdry-row">
+            <label style="color:var(--deck1);font-size:9px">WET/DRY</label>
+            <div class="knob fx-wetdry-knob" data-param="fxwet" data-ch="0" title="FX Wet/Dry CH1"><div class="knob-indicator"></div></div>
+            <div class="knob fx-wetdry-knob" data-param="fxwet" data-ch="1" title="FX Wet/Dry CH2"><div class="knob-indicator"></div></div>
+            <label style="color:var(--deck2);font-size:9px">WET/DRY</label>
           </div>
         </div>
       </div>
@@ -305,6 +343,29 @@
           <button class="loop-btn" data-deck="1" data-beats="2" onclick="toggleLoop(1,2,this)">2</button>
           <button class="loop-btn" data-deck="1" data-beats="4" onclick="toggleLoop(1,4,this)">4</button>
           <button class="loop-btn" data-deck="1" data-beats="8" onclick="toggleLoop(1,8,this)">8</button>
+        </div>
+        <div class="slicer-section" id="slicerSection1">
+          <span style="font-size:9px;color:#555">SLICER</span>
+          <div class="slicer-pads">
+            <button class="slicer-pad" onmousedown="slicerTrigger(1,0)" onmouseup="slicerRelease(1)" ontouchstart="slicerTrigger(1,0)" ontouchend="slicerRelease(1)">1</button>
+            <button class="slicer-pad" onmousedown="slicerTrigger(1,1)" onmouseup="slicerRelease(1)" ontouchstart="slicerTrigger(1,1)" ontouchend="slicerRelease(1)">2</button>
+            <button class="slicer-pad" onmousedown="slicerTrigger(1,2)" onmouseup="slicerRelease(1)" ontouchstart="slicerTrigger(1,2)" ontouchend="slicerRelease(1)">3</button>
+            <button class="slicer-pad" onmousedown="slicerTrigger(1,3)" onmouseup="slicerRelease(1)" ontouchstart="slicerTrigger(1,3)" ontouchend="slicerRelease(1)">4</button>
+            <button class="slicer-pad" onmousedown="slicerTrigger(1,4)" onmouseup="slicerRelease(1)" ontouchstart="slicerTrigger(1,4)" ontouchend="slicerRelease(1)">5</button>
+            <button class="slicer-pad" onmousedown="slicerTrigger(1,5)" onmouseup="slicerRelease(1)" ontouchstart="slicerTrigger(1,5)" ontouchend="slicerRelease(1)">6</button>
+            <button class="slicer-pad" onmousedown="slicerTrigger(1,6)" onmouseup="slicerRelease(1)" ontouchstart="slicerTrigger(1,6)" ontouchend="slicerRelease(1)">7</button>
+            <button class="slicer-pad" onmousedown="slicerTrigger(1,7)" onmouseup="slicerRelease(1)" ontouchstart="slicerTrigger(1,7)" ontouchend="slicerRelease(1)">8</button>
+          </div>
+        </div>
+        <div class="roll-section">
+          <span style="font-size:9px;color:#555">ROLL</span>
+          <div class="roll-pads">
+            <button class="roll-pad" onmousedown="rollStart(1,0.0625)" onmouseup="rollStop(1)" ontouchstart="rollStart(1,0.0625)" ontouchend="rollStop(1)">1/16</button>
+            <button class="roll-pad" onmousedown="rollStart(1,0.125)" onmouseup="rollStop(1)" ontouchstart="rollStart(1,0.125)" ontouchend="rollStop(1)">1/8</button>
+            <button class="roll-pad" onmousedown="rollStart(1,0.25)" onmouseup="rollStop(1)" ontouchstart="rollStart(1,0.25)" ontouchend="rollStop(1)">1/4</button>
+            <button class="roll-pad" onmousedown="rollStart(1,0.5)" onmouseup="rollStop(1)" ontouchstart="rollStart(1,0.5)" ontouchend="rollStop(1)">1/2</button>
+            <button class="roll-pad" onmousedown="rollStart(1,1)" onmouseup="rollStop(1)" ontouchstart="rollStart(1,1)" ontouchend="rollStop(1)">1</button>
+          </div>
         </div>
         <div class="transport">
           <button class="btn-cue" id="cue2">CUE</button>

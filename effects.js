@@ -161,13 +161,26 @@ function connectEffectsChain(deck) {
  */
 function toggleDeckFX(deck, type) {
   deck.fx[type] = !deck.fx[type];
-  const wet = 0.5;
-  switch(type) {
-    case 'echo': deck.echoWet.gain.value = deck.fx.echo ? wet : 0; deck.echoFeedback.gain.value = deck.fx.echo ? 0.4 : 0; break;
-    case 'reverb': deck.reverbWet.gain.value = deck.fx.reverb ? wet : 0; break;
-    case 'delay': deck.delayWet.gain.value = deck.fx.delay ? wet : 0; break;
-    case 'flanger': deck.flangerWet.gain.value = deck.fx.flanger ? wet : 0; deck.flangerLFOGain.gain.value = deck.fx.flanger ? 0.003 : 0; break;
-    case 'phaser': deck.phaserWet.gain.value = deck.fx.phaser ? wet : 0; break;
-    case 'bitcrush': deck.bitcrushWet.gain.value = deck.fx.bitcrush ? 0.7 : 0; break;
+  // Use fxWetDry if available (from app.js), else default 0.5
+  const wet = (typeof fxWetDry !== 'undefined') ? fxWetDry[deck.id] : 0.5;
+  if (!deck.fx[type]) {
+    // Turn off
+    switch(type) {
+      case 'echo': deck.echoWet.gain.value = 0; deck.echoFeedback.gain.value = 0; break;
+      case 'reverb': deck.reverbWet.gain.value = 0; break;
+      case 'delay': deck.delayWet.gain.value = 0; break;
+      case 'flanger': deck.flangerWet.gain.value = 0; deck.flangerLFOGain.gain.value = 0; break;
+      case 'phaser': deck.phaserWet.gain.value = 0; break;
+      case 'bitcrush': deck.bitcrushWet.gain.value = 0; break;
+    }
+  } else {
+    switch(type) {
+      case 'echo': deck.echoWet.gain.value = wet; deck.echoFeedback.gain.value = wet * 0.8; break;
+      case 'reverb': deck.reverbWet.gain.value = wet; break;
+      case 'delay': deck.delayWet.gain.value = wet; break;
+      case 'flanger': deck.flangerWet.gain.value = wet; deck.flangerLFOGain.gain.value = wet * 0.006; break;
+      case 'phaser': deck.phaserWet.gain.value = wet; break;
+      case 'bitcrush': deck.bitcrushWet.gain.value = wet; break;
+    }
   }
 }

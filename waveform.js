@@ -157,6 +157,21 @@ function drawOverviewPlayhead() {
     ctx.fillRect(x, 0, 2, canvas.height);
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.fillRect(0, 0, x, canvas.height);
+    // 16-bar beat jump markers
+    if (deck.bpm > 0) {
+      const beatDur = 60 / deck.bpm;
+      const barDur = beatDur * 4;
+      const sixteenBarDur = barDur * 16;
+      const totalSections = Math.floor(deck.buffer.duration / sixteenBarDur);
+      for (let s = 1; s <= totalSections; s++) {
+        const mx = (s * sixteenBarDur / deck.buffer.duration) * canvas.width;
+        ctx.fillStyle = 'rgba(255,255,0,0.35)';
+        ctx.fillRect(mx, 0, 1, canvas.height);
+        // Small triangle marker at top
+        ctx.fillStyle = 'rgba(255,255,0,0.5)';
+        ctx.beginPath(); ctx.moveTo(mx - 3, 0); ctx.lineTo(mx + 3, 0); ctx.lineTo(mx, 5); ctx.fill();
+      }
+    }
     // Intro/outro markers
     if (deck.introMarker > 0.1) {
       const ix = (deck.introMarker / deck.buffer.duration) * canvas.width;

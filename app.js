@@ -970,6 +970,9 @@ function applyKnob(knob, angle) {
     if (cueMasterMix < 0.3) label.textContent = '◀ CUE';
     else if (cueMasterMix > 0.7) label.textContent = 'MST ▶';
     else label.textContent = 'CUE ◆ MST';
+  } else if (param === 'fxwet') {
+    fxWetDry[ch] = (val + 1) / 2;
+    applyFxWetDry(ch);
   } else if (param === 'hi') { deck.eqHi.gain.value = val * 24; }
   else if (param === 'mid') { deck.eqMid.gain.value = val * 24; }
   else if (param === 'lo') { deck.eqLo.gain.value = val * 24; }
@@ -1880,22 +1883,76 @@ function autoMixTransition(type) {
   }
 
   if (type === 'smooth16') {
-    // 16-bar blend assuming ~128 BPM (about 30 seconds)
+    // 16-bar blend with EQ transition and visual progress
     const bpm = decks[toDeck].bpm || decks[fromDeck].bpm || 128;
     const barDuration = (60 / bpm) * 4;
     const duration = barDuration * 16 * 1000;
     const steps = 200;
     const stepMs = duration / steps;
     let step = 0;
+    const progressEl = document.getElementById('automixProgress');
+    const progressFill = document.getElementById('automixProgressFill');
+    const progressText = document.getElementById('automixProgressText');
+    progressEl.style.display = '';
+    
+    // Save original EQ values for incoming deck
+    const savedEqHi = decks[toDeck].eqHi.gain.value;
+    const savedEqMid = decks[toDeck].eqMid.gain.value;
+    const savedEqLo = decks[toDeck].eqLo.gain.value;
+    // Start with incoming deck EQ killed
+    decks[toDeck].eqHi.gain.value = -24;
+    decks[toDeck].eqMid.gain.value = -24;
+    decks[toDeck].eqLo.gain.value = -24;
+    
     autoMixRunning = setInterval(() => {
       step++;
       const progress = step / steps;
-      // S-curve for smooth blend
       const sCurve = progress * progress * (3 - 2 * progress);
       cf.value = currentVal + (targetVal - currentVal) * sCurve;
       cf.dispatchEvent(new Event('input'));
+      
+      // EQ transition phases: bass (0-33%), mids (33-66%), highs (66-100%)
+      if (progress < 0.33) {
+        const p = progress / 0.33;
+        decks[toDeck].eqLo.gain.value = -24 + (savedEqLo + 24) * p;
+      } else {
+        decks[toDeck].eqLo.gain.value = savedEqLo;
+      }
+      if (progress >= 0.33 && progress < 0.66) {
+        const p = (progress - 0.33) / 0.33;
+        decks[toDeck].eqMid.gain.value = -24 + (savedEqMid + 24) * p;
+      } else if (progress >= 0.66) {
+        decks[toDeck].eqMid.gain.value = savedEqMid;
+      }
+      if (progress >= 0.66) {
+        const p = (progress - 0.66) / 0.34;
+        decks[toDeck].eqHi.gain.value = -24 + (savedEqHi + 24) * p;
+      }
+      
+      // Cut outgoing deck EQ in reverse order
+      if (progress >= 0.5) {
+        const p = (progress - 0.5) / 0.5;
+        decks[fromDeck].eqHi.gain.value = -24 * p;
+        if (progress >= 0.7) decks[fromDeck].eqMid.gain.value = -24 * ((progress - 0.7) / 0.3);
+        if (progress >= 0.85) decks[fromDeck].eqLo.gain.value = -24 * ((progress - 0.85) / 0.15);
+      }
+      
+      // Update progress indicator
+      const barsRemaining = Math.ceil((1 - progress) * 16);
+      const phase = progress < 0.33 ? 'BASS' : progress < 0.66 ? 'MIDS' : 'HIGHS';
+      progressFill.style.width = (progress * 100) + '%';
+      progressText.textContent = phase + ' · ' + barsRemaining + ' bars';
+      
       if (step >= steps) {
         clearInterval(autoMixRunning); autoMixRunning = null; btn.classList.remove('running');
+        progressEl.style.display = 'none';
+        // Restore EQ on both decks
+        decks[toDeck].eqHi.gain.value = savedEqHi;
+        decks[toDeck].eqMid.gain.value = savedEqMid;
+        decks[toDeck].eqLo.gain.value = savedEqLo;
+        decks[fromDeck].eqHi.gain.value = 0;
+        decks[fromDeck].eqMid.gain.value = 0;
+        decks[fromDeck].eqLo.gain.value = 0;
       }
     }, stepMs);
     return;
@@ -1971,6 +2028,157 @@ renderTrackList = function() {
 // Load BPMs after tracks load (with delay to not slow initial load)
 setTimeout(() => { if (allTracks.length > 0) loadTrackBPMs(); }, 2000);
 
+// ==================== SPECTRUM ANALYZERS ====================
+const masterAnalyser = actx.createAnalyser();
+masterAnalyser.fftSize = 128;
+limiterNode.connect(masterAnalyser);
+
+function drawSpectrumAnalyzers() {
+  // Per-deck spectrum
+  for (let i = 0; i < 2; i++) {
+    const canvas = document.getElementById('spectrum' + (i + 1));
+    if (!canvas) continue;
+    const ctx = canvas.getContext('2d');
+    if (canvas.width !== canvas.offsetWidth * 2) { canvas.width = canvas.offsetWidth * 2; canvas.height = canvas.offsetHeight * 2; }
+    ctx.fillStyle = '#050508';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const analyser = decks[i].analyser;
+    const bufLen = analyser.frequencyBinCount;
+    const data = new Uint8Array(bufLen);
+    analyser.getByteFrequencyData(data);
+    const bars = 32;
+    const barW = Math.floor(canvas.width / bars) - 1;
+    for (let b = 0; b < bars; b++) {
+      const startBin = Math.floor(b * bufLen / bars);
+      const endBin = Math.floor((b + 1) * bufLen / bars);
+      let sum = 0;
+      for (let j = startBin; j < endBin; j++) sum += data[j];
+      const avg = sum / (endBin - startBin);
+      const h = (avg / 255) * canvas.height;
+      // Color by frequency: low=red, mid=green, high=cyan
+      const ratio = b / bars;
+      const r = Math.floor(255 * Math.max(0, 1 - ratio * 3));
+      const g = Math.floor(255 * (ratio < 0.5 ? ratio * 2 : 2 - ratio * 2));
+      const bl = Math.floor(255 * Math.max(0, ratio * 2 - 1));
+      ctx.fillStyle = `rgb(${r},${g},${bl})`;
+      ctx.fillRect(b * (barW + 1), canvas.height - h, barW, h);
+    }
+  }
+  // Master spectrum
+  const mCanvas = document.getElementById('masterSpectrum');
+  if (!mCanvas) return;
+  const mCtx = mCanvas.getContext('2d');
+  if (mCanvas.width !== mCanvas.offsetWidth * 2) { mCanvas.width = mCanvas.offsetWidth * 2; mCanvas.height = mCanvas.offsetHeight * 2; }
+  mCtx.fillStyle = '#050508';
+  mCtx.fillRect(0, 0, mCanvas.width, mCanvas.height);
+  const mData = new Uint8Array(masterAnalyser.frequencyBinCount);
+  masterAnalyser.getByteFrequencyData(mData);
+  const mBars = 64;
+  const mBarW = Math.floor(mCanvas.width / mBars) - 1;
+  for (let b = 0; b < mBars; b++) {
+    const startBin = Math.floor(b * masterAnalyser.frequencyBinCount / mBars);
+    const endBin = Math.floor((b + 1) * masterAnalyser.frequencyBinCount / mBars);
+    let sum = 0;
+    for (let j = startBin; j < endBin; j++) sum += mData[j];
+    const avg = sum / (endBin - startBin);
+    const h = (avg / 255) * mCanvas.height;
+    const ratio = b / mBars;
+    const r = Math.floor(255 * Math.max(0, 1 - ratio * 3));
+    const g = Math.floor(255 * (ratio < 0.5 ? ratio * 2 : 2 - ratio * 2));
+    const bl = Math.floor(255 * Math.max(0, ratio * 2 - 1));
+    mCtx.fillStyle = `rgb(${r},${g},${bl})`;
+    mCtx.fillRect(b * (mBarW + 1), mCanvas.height - h, mBarW, h);
+  }
+}
+
+// ==================== SLICER MODE ====================
+const slicerState = [{ active: false, sliceIdx: -1, savedPosition: 0 }, { active: false, sliceIdx: -1, savedPosition: 0 }];
+
+function slicerTrigger(deckId, sliceIdx) {
+  const deck = decks[deckId];
+  if (!deck.bpm || !deck.playing) return;
+  const beatDur = 60 / deck.bpm;
+  const sectionDur = beatDur * 8; // 8 beats = 2 bars for slicer domain
+  const currentTime = deck.getCurrentTime();
+  const sectionStart = Math.floor(currentTime / sectionDur) * sectionDur;
+  const sliceDur = sectionDur / 8;
+  const sliceStart = sectionStart + sliceIdx * sliceDur;
+  
+  if (!slicerState[deckId].active) {
+    slicerState[deckId].savedPosition = currentTime;
+  }
+  slicerState[deckId].active = true;
+  slicerState[deckId].sliceIdx = sliceIdx;
+  
+  // Set loop on this slice
+  deck.loopStart = sliceStart;
+  deck.loopEnd = sliceStart + sliceDur;
+  deck.loopActive = true;
+  deck.seekTo(sliceStart);
+  
+  // Highlight pad
+  const pads = document.querySelectorAll('#slicerSection' + deckId + ' .slicer-pad');
+  pads.forEach((p, idx) => p.classList.toggle('active', idx === sliceIdx));
+}
+
+function slicerRelease(deckId) {
+  const deck = decks[deckId];
+  if (!slicerState[deckId].active) return;
+  deck.loopActive = false;
+  // Return to saved position (slip-like behavior)
+  const elapsed = deck.getCurrentTime() - slicerState[deckId].savedPosition;
+  if (elapsed > 0) deck.seekTo(slicerState[deckId].savedPosition + elapsed);
+  slicerState[deckId].active = false;
+  slicerState[deckId].sliceIdx = -1;
+  document.querySelectorAll('#slicerSection' + deckId + ' .slicer-pad').forEach(p => p.classList.remove('active'));
+}
+
+// ==================== ROLL EFFECT ====================
+const rollState = [{ active: false, savedPosition: 0, savedTime: 0 }, { active: false, savedPosition: 0, savedTime: 0 }];
+
+function rollStart(deckId, beats) {
+  const deck = decks[deckId];
+  if (!deck.bpm || !deck.playing) return;
+  const beatDur = 60 / deck.bpm;
+  const currentTime = deck.getCurrentTime();
+  
+  rollState[deckId].savedPosition = currentTime;
+  rollState[deckId].savedTime = actx.currentTime;
+  rollState[deckId].active = true;
+  
+  // Set a tight loop
+  deck.loopStart = snapToBeat(deck, currentTime);
+  deck.loopEnd = deck.loopStart + beats * beatDur;
+  deck.loopActive = true;
+}
+
+function rollStop(deckId) {
+  const deck = decks[deckId];
+  if (!rollState[deckId].active) return;
+  deck.loopActive = false;
+  // Return to where playback would have been without the roll
+  const elapsed = (actx.currentTime - rollState[deckId].savedTime) * deck.playbackRate;
+  deck.seekTo(rollState[deckId].savedPosition + elapsed);
+  rollState[deckId].active = false;
+  // Clear loop button states
+  document.querySelectorAll(`.loop-btn[data-deck="${deckId}"]`).forEach(b => b.classList.remove('active'));
+}
+
+// ==================== FX WET/DRY ====================
+const fxWetDry = [0.5, 0.5]; // 0=dry, 1=full wet
+
+function applyFxWetDry(ch) {
+  const deck = decks[ch];
+  const wet = fxWetDry[ch];
+  // Apply wet level to all active effects
+  if (deck.fx.echo) { deck.echoWet.gain.value = wet; deck.echoFeedback.gain.value = wet * 0.8; }
+  if (deck.fx.reverb) deck.reverbWet.gain.value = wet;
+  if (deck.fx.delay) deck.delayWet.gain.value = wet;
+  if (deck.fx.flanger) { deck.flangerWet.gain.value = wet; deck.flangerLFOGain.gain.value = wet * 0.006; }
+  if (deck.fx.phaser) deck.phaserWet.gain.value = wet;
+  if (deck.fx.bitcrush) deck.bitcrushWet.gain.value = wet;
+}
+
 // ==================== ANIMATION LOOP ====================
 function animate() {
   requestAnimationFrame(animate);
@@ -1991,6 +2199,7 @@ function animate() {
   drawPlayhead();
   drawOverviewPlayhead();
   drawParallelWaveforms();
+  drawSpectrumAnalyzers();
   updateMeters();
   updateVUMeters();
   updatePhaseMeter();
