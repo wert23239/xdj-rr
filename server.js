@@ -7,6 +7,43 @@ const crypto = require('crypto');
 const app = express();
 app.use(compression());
 app.use(express.json());
+
+// ==================== CORS HEADERS ====================
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
+
+// ==================== RATE LIMITING ====================
+const rateLimitMap = new Map();
+function rateLimit(windowMs, maxRequests) {
+  return (req, res, next) => {
+    const ip = req.ip || req.connection.remoteAddress || 'unknown';
+    const key = ip + ':' + req.route.path;
+    const now = Date.now();
+    let entry = rateLimitMap.get(key);
+    if (!entry || now - entry.start > windowMs) {
+      entry = { start: now, count: 0 };
+      rateLimitMap.set(key, entry);
+    }
+    entry.count++;
+    if (entry.count > maxRequests) {
+      return res.status(429).json({ error: 'Too many requests. Try again later.' });
+    }
+    next();
+  };
+}
+// Clean up stale entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of rateLimitMap) {
+    if (now - entry.start > 300000) rateLimitMap.delete(key);
+  }
+}, 300000);
+
 const PORT = 3000;
 const MUSIC_DIR = '/Users/clawman/Music/DJ';
 const CACHE_DIR = path.join(__dirname, 'cache');
@@ -14,8 +51,9 @@ const CACHE_DIR = path.join(__dirname, 'cache');
 // Ensure cache directory exists
 if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
 
+// Supabase config — service role key is server-side only, never exposed to client
 const SUPABASE_URL = 'https://aihworyfcgstwbpzkzoy.supabase.co';
-const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpaHdvcnlmY2dzdHdicHprem95Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTEyMTQ3MSwiZXhwIjoyMDg2Njk3NDcxfQ.jy9tS4IaDXbu__Kw_vELMXBYGBFY5fjtHRTAxqwsEqg';
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpaHdvcnlmY2dzdHdicHprem95Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTEyMTQ3MSwiZXhwIjoyMDg2Njk3NDcxfQ.jy9tS4IaDXbu__Kw_vELMXBYGBFY5fjtHRTAxqwsEqg';
 const sbHeaders = { 'Content-Type': 'application/json', 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`, 'Prefer': 'return=representation' };
 
 const startTime = Date.now();
@@ -309,7 +347,7 @@ const { execFile, spawn } = require('child_process');
 const downloadQueue = [];
 
 // POST /api/search — search YouTube + SoundCloud via yt-dlp
-app.get('/api/search', async (req, res) => {
+app.get('/api/search', rateLimit(60000, 15), async (req, res) => {
   const q = (req.query.q || '').trim();
   if (!q) return res.json([]);
 
@@ -353,7 +391,7 @@ app.get('/api/search', async (req, res) => {
 });
 
 // POST /api/download — download a track to the DJ library
-app.post('/api/download', async (req, res) => {
+app.post('/api/download', rateLimit(60000, 10), async (req, res) => {
   const { url, title } = req.body;
   if (!url) return res.status(400).json({ error: 'url required' });
 

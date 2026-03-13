@@ -7,6 +7,79 @@
 /** @type {AudioContext} Global audio context */
 const actx = new (window.AudioContext || window.webkitAudioContext)();
 
+// ==================== AUDIO CONTEXT RECOVERY ====================
+function createAudioContextOverlay() {
+  if (document.getElementById('audioContextOverlay')) return;
+  const overlay = document.createElement('div');
+  overlay.id = 'audioContextOverlay';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;cursor:pointer';
+  overlay.innerHTML = '<div style="text-align:center;color:#fff;font-family:sans-serif"><div style="font-size:48px;margin-bottom:16px">🔇</div><div style="font-size:20px;font-weight:bold">Click to Enable Audio</div><div style="font-size:14px;color:#aaa;margin-top:8px">Browser requires user interaction to start audio</div></div>';
+  overlay.onclick = async () => {
+    await actx.resume();
+    overlay.remove();
+  };
+  document.body.appendChild(overlay);
+}
+function checkAudioContext() {
+  if (actx.state === 'suspended') createAudioContextOverlay();
+}
+actx.addEventListener('statechange', () => {
+  if (actx.state === 'suspended') createAudioContextOverlay();
+  else { const ov = document.getElementById('audioContextOverlay'); if (ov) ov.remove(); }
+});
+// Check on first user interaction
+document.addEventListener('click', () => { if (actx.state === 'suspended') actx.resume(); }, { once: true });
+setTimeout(checkAudioContext, 1000);
+
+// ==================== SERVER CONNECTIVITY ====================
+let serverConnected = true;
+let reconnectTimer = null;
+function createDisconnectedBanner() {
+  if (document.getElementById('disconnectedBanner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'disconnectedBanner';
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#d32f2f;color:#fff;text-align:center;padding:6px 12px;z-index:99998;font-family:sans-serif;font-size:13px;font-weight:bold';
+  banner.textContent = '⚠ Disconnected from server — retrying...';
+  document.body.appendChild(banner);
+}
+function removeDisconnectedBanner() {
+  const b = document.getElementById('disconnectedBanner');
+  if (b) b.remove();
+}
+async function checkServerHealth() {
+  try {
+    const r = await fetch('/api/health', { signal: AbortSignal.timeout(5000) });
+    if (r.ok) {
+      if (!serverConnected) { serverConnected = true; removeDisconnectedBanner(); loadTracks(); }
+      return;
+    }
+  } catch {}
+  if (serverConnected) { serverConnected = false; createDisconnectedBanner(); }
+}
+setInterval(checkServerHealth, 10000);
+
+// ==================== MEMORY MANAGEMENT ====================
+let _objectURLs = [];
+function trackObjectURL(url) { _objectURLs.push(url); return url; }
+function revokeTrackedURLs() { _objectURLs.forEach(u => { try { URL.revokeObjectURL(u); } catch {} }); _objectURLs = []; }
+function getMemoryUsageMB() {
+  if (performance.memory) return (performance.memory.usedJSHeapSize / (1024 * 1024)).toFixed(0);
+  return null;
+}
+// Memory indicator in topbar
+(function() {
+  const indicator = document.createElement('span');
+  indicator.id = 'memoryIndicator';
+  indicator.style.cssText = 'font-size:10px;color:#555;margin-left:8px;font-family:monospace';
+  indicator.title = 'JS Heap Memory Usage';
+  const topbar = document.querySelector('.topbar-controls');
+  if (topbar) topbar.appendChild(indicator);
+  setInterval(() => {
+    const mb = getMemoryUsageMB();
+    if (mb) indicator.textContent = mb + 'MB';
+  }, 3000);
+})();
+
 /** @type {GainNode} Master gain node */
 const masterGain = actx.createGain();
 masterGain.gain.value = 1;
@@ -293,6 +366,13 @@ class Deck {
    */
   async loadTrack(url, name) {
     this.stop();
+    // Memory cleanup: dispose previous track resources
+    if (this._streamSource) { try { this._streamSource.disconnect(); } catch {} }
+    if (this._streamAudio) { this._streamAudio.pause(); this._streamAudio.removeAttribute('src'); this._streamAudio.load(); }
+    if (this.source) { try { this.source.disconnect(); } catch {} this.source = null; }
+    this.buffer = null; // Release previous AudioBuffer for GC
+    this.wfFreqData = null;
+    this._serverPeaks = null;
     this._lastUrl = url;
     this._streamAudio = null;
     this._streamSource = null;
@@ -1617,7 +1697,7 @@ document.getElementById('masterVol').oninput = e => {
 
 // Consolidated keyboard handler
 document.addEventListener('keydown', e => {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
   switch(e.key) {
     case 'q': decks[0].togglePlay(); break;
     case 'w': decks[0].cue(); break;
@@ -2420,6 +2500,37 @@ function addTooltips() {
   document.querySelectorAll('.xfade-curve-btn').forEach(p => p.setAttribute('data-tooltip', p.textContent + ' crossfader curve'));
 }
 addTooltips();
+
+// ==================== HASH-BASED ROUTING ====================
+function applyHashRoute() {
+  const hash = window.location.hash.replace('#', '').toLowerCase();
+  // Reset all modes first
+  if (performanceMode) togglePerformanceMode();
+  if (miniMixerActive) toggleMiniMixer();
+  if (parallelWaveformsEnabled) toggleParallelWaveforms();
+  if (discoverOpen) toggleDiscover();
+  switch (hash) {
+    case 'performance':
+      if (!performanceMode) togglePerformanceMode();
+      break;
+    case 'mini':
+      if (!miniMixerActive) toggleMiniMixer();
+      break;
+    case 'parallel':
+      if (!parallelWaveformsEnabled) toggleParallelWaveforms();
+      break;
+    case 'discover':
+      if (!discoverOpen) toggleDiscover();
+      break;
+    case 'light':
+      if (currentTheme !== 'light') toggleTheme();
+      break;
+    // default: normal view, no special mode
+  }
+}
+// Apply on load and hash change
+window.addEventListener('hashchange', applyHashRoute);
+if (window.location.hash) setTimeout(applyHashRoute, 100);
 
 // ==================== ANIMATION LOOP ====================
 function animate() {
