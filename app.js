@@ -2532,6 +2532,421 @@ function applyHashRoute() {
 window.addEventListener('hashchange', applyHashRoute);
 if (window.location.hash) setTimeout(applyHashRoute, 100);
 
+// ==================== STUTTER EFFECT ====================
+const stutterState = [{ active: false, interval: null }, { active: false, interval: null }];
+
+function stutterStart(deckId, beatFraction) {
+  const deck = decks[deckId];
+  if (!deck.playing || !deck.bpm) return;
+  stutterStop(deckId);
+  stutterState[deckId].active = true;
+  const beatDur = 60 / deck.bpm;
+  const intervalMs = beatFraction * beatDur * 1000;
+  let muted = false;
+  stutterState[deckId].interval = setInterval(() => {
+    muted = !muted;
+    deck.channelGain.gain.setTargetAtTime(muted ? 0 : 1, actx.currentTime, 0.003);
+  }, intervalMs / 2);
+}
+
+function stutterStop(deckId) {
+  if (stutterState[deckId].interval) {
+    clearInterval(stutterState[deckId].interval);
+    stutterState[deckId].interval = null;
+  }
+  stutterState[deckId].active = false;
+  decks[deckId].channelGain.gain.setTargetAtTime(1, actx.currentTime, 0.01);
+  updateCrossfader(); // restore proper crossfader gain
+}
+
+// ==================== TAPE STOP / TAPE START ====================
+const tapeState = [{ mode: 'normal' }, { mode: 'normal' }]; // 'normal', 'stopping', 'stopped', 'starting'
+
+function tapeStop(deckId) {
+  const deck = decks[deckId];
+  const btn = document.getElementById('tapestop' + (deckId + 1));
+  const state = tapeState[deckId];
+
+  if (state.mode === 'stopped') {
+    // Tape start: gradually speed up from 0
+    state.mode = 'starting';
+    btn.className = 'btn-tapestop starting';
+    const audio = deck._streamAudio;
+    const targetRate = deck.playbackRate;
+    const duration = 1200;
+    const startTime = performance.now();
+    
+    // Start playback at very slow rate
+    if (!deck.playing) deck.play();
+    
+    function startStep() {
+      if (state.mode !== 'starting') return;
+      const elapsed = performance.now() - startTime;
+      const progress = Math.min(1, elapsed / duration);
+      // Ease-in curve
+      const rate = targetRate * progress * progress;
+      if (audio) audio.playbackRate = Math.max(0.01, rate);
+      else if (deck.source) deck.source.playbackRate.value = Math.max(0.01, rate);
+      
+      // Also fade volume back in
+      deck.gainNode.gain.setTargetAtTime(parseFloat(document.getElementById('vol' + (deckId + 1)).value) * progress, actx.currentTime, 0.01);
+      
+      if (progress >= 1) {
+        state.mode = 'normal';
+        btn.className = 'btn-tapestop';
+        if (audio) audio.playbackRate = targetRate;
+        else if (deck.source) deck.source.playbackRate.value = targetRate;
+        deck.gainNode.gain.setTargetAtTime(parseFloat(document.getElementById('vol' + (deckId + 1)).value), actx.currentTime, 0.01);
+        return;
+      }
+      requestAnimationFrame(startStep);
+    }
+    startStep();
+    return;
+  }
+
+  if (!deck.playing) return;
+
+  // Tape stop: slow down to silence
+  state.mode = 'stopping';
+  btn.className = 'btn-tapestop stopping';
+  const audio = deck._streamAudio;
+  const startRate = deck.playbackRate;
+  const duration = 1000;
+  const startTime = performance.now();
+
+  function stopStep() {
+    if (state.mode !== 'stopping') return;
+    const elapsed = performance.now() - startTime;
+    const progress = Math.min(1, elapsed / duration);
+    // Ease-out slow-down
+    const rate = startRate * (1 - progress) * (1 - progress);
+    if (audio) audio.playbackRate = Math.max(0.001, rate);
+    else if (deck.source) deck.source.playbackRate.value = Math.max(0.001, rate);
+    
+    // Fade volume to silence
+    deck.gainNode.gain.setTargetAtTime(parseFloat(document.getElementById('vol' + (deckId + 1)).value) * (1 - progress), actx.currentTime, 0.01);
+    
+    if (progress >= 1) {
+      state.mode = 'stopped';
+      btn.className = 'btn-tapestop stopping';
+      btn.textContent = 'START';
+      deck.stop();
+      // Restore rate for next play
+      if (audio) audio.playbackRate = deck.playbackRate;
+      deck.gainNode.gain.value = parseFloat(document.getElementById('vol' + (deckId + 1)).value);
+      return;
+    }
+    requestAnimationFrame(stopStep);
+  }
+  stopStep();
+}
+
+// ==================== SET STATISTICS ====================
+const setStats = {
+  tracksPlayed: [],
+  bpms: [],
+  keys: [],
+  transitions: 0,
+  startTime: null
+};
+
+function toggleSetStats() {
+  document.getElementById('statsOverlay').classList.toggle('open');
+  if (document.getElementById('statsOverlay').classList.contains('open')) updateSetStats();
+}
+
+function updateSetStats() {
+  // Gather from track history and recording data
+  const uniqueTracks = new Set();
+  trackHistory.forEach(h => uniqueTracks.add(h.name));
+  
+  // BPMs from track BPM cache matched to history
+  const bpms = [];
+  const keys = [];
+  trackHistory.forEach(h => {
+    const track = allTracks.find(t => cleanTrackName(t.name) === h.name);
+    if (track && trackBPMCache[track.name]) bpms.push(trackBPMCache[track.name]);
+    // Keys from cache
+    const cached = track ? null : null; // check deckKeys
+  });
+  // Also check current deck keys
+  for (let i = 0; i < 2; i++) {
+    if (deckKeys[i]) keys.push(deckKeys[i]);
+  }
+  // Count from tracklist entries
+  const tlEntries = document.querySelectorAll('#tracklistEntries .tl-entry:not(.removed):not(.transition)');
+  const tlTransitions = document.querySelectorAll('#tracklistEntries .tl-entry.transition:not(.removed)');
+
+  document.getElementById('statTracks').textContent = Math.max(uniqueTracks.size, tlEntries.length);
+  
+  if (bpms.length > 0) {
+    const avg = bpms.reduce((a, b) => a + b, 0) / bpms.length;
+    document.getElementById('statBPM').textContent = avg.toFixed(1);
+  } else {
+    // Fallback: use current deck BPMs
+    const activeBpms = decks.filter(d => d.bpm).map(d => d.bpm);
+    if (activeBpms.length) document.getElementById('statBPM').textContent = (activeBpms.reduce((a, b) => a + b, 0) / activeBpms.length).toFixed(1);
+    else document.getElementById('statBPM').textContent = '—';
+  }
+  
+  // Most used key
+  if (keys.length > 0) {
+    const keyCounts = {};
+    keys.forEach(k => { keyCounts[k] = (keyCounts[k] || 0) + 1; });
+    const topKey = Object.entries(keyCounts).sort((a, b) => b[1] - a[1])[0];
+    const cam = getCamelot(topKey[0]);
+    document.getElementById('statKey').textContent = topKey[0] + (cam ? ' (' + cam.code + ')' : '');
+  } else {
+    document.getElementById('statKey').textContent = '—';
+  }
+  
+  // Duration from master clock
+  document.getElementById('statDuration').textContent = document.getElementById('masterClock').textContent;
+  
+  // Transitions
+  document.getElementById('statTransitions').textContent = tlTransitions.length;
+}
+
+// ==================== ENERGY METER ====================
+let energyHistory = [];
+const ENERGY_HISTORY_SIZE = 60;
+
+function updateEnergyMeter() {
+  // Analyze master output energy
+  const data = new Uint8Array(masterAnalyser.frequencyBinCount);
+  masterAnalyser.getByteFrequencyData(data);
+  
+  // Weight bass and mids more heavily
+  let totalEnergy = 0;
+  const binCount = data.length;
+  for (let i = 0; i < binCount; i++) {
+    const weight = i < binCount * 0.2 ? 2.0 : i < binCount * 0.5 ? 1.5 : 1.0;
+    totalEnergy += data[i] * weight;
+  }
+  const avgEnergy = totalEnergy / (binCount * 1.5); // normalize
+  
+  energyHistory.push(avgEnergy);
+  if (energyHistory.length > ENERGY_HISTORY_SIZE) energyHistory.shift();
+  
+  // Smooth energy
+  const smoothEnergy = energyHistory.reduce((a, b) => a + b, 0) / energyHistory.length;
+  const normalizedEnergy = Math.min(1, smoothEnergy / 120);
+  
+  const fill = document.getElementById('energyMeterFill');
+  const label = document.getElementById('energyMeterLabel');
+  fill.style.width = (normalizedEnergy * 100) + '%';
+  
+  let levelText, levelColor;
+  if (normalizedEnergy < 0.25) { levelText = 'LOW'; levelColor = '#0c6'; }
+  else if (normalizedEnergy < 0.5) { levelText = 'MEDIUM'; levelColor = '#cc0'; }
+  else if (normalizedEnergy < 0.75) { levelText = 'HIGH'; levelColor = '#f80'; }
+  else { levelText = 'PEAK'; levelColor = '#f33'; }
+  
+  label.textContent = levelText;
+  fill.style.background = `linear-gradient(90deg, #0c6, ${levelColor})`;
+}
+
+// ==================== AI MIX SUGGESTIONS ====================
+function isHarmonicCompatible(key1, key2) {
+  const cam1 = getCamelot(key1);
+  const cam2 = getCamelot(key2);
+  if (!cam1 || !cam2) return { compatible: false, score: 0 };
+  const compat = harmonicCompatibility(cam1, cam2);
+  if (compat === 'compatible') return { compatible: true, score: 10 };
+  if (compat === 'adjacent') return { compatible: true, score: 5 };
+  return { compatible: false, score: 0 };
+}
+
+function updateSuggestedNext() {
+  const panel = document.getElementById('suggestedNextPanel');
+  const list = document.getElementById('suggestedNextList');
+  
+  // Find the active/playing deck
+  let activeDeck = null;
+  let activeDeckIdx = -1;
+  for (let i = 0; i < 2; i++) {
+    if (decks[i].playing && decks[i].bpm) { activeDeck = decks[i]; activeDeckIdx = i; break; }
+  }
+  if (!activeDeck) {
+    for (let i = 0; i < 2; i++) {
+      if (decks[i].bpm) { activeDeck = decks[i]; activeDeckIdx = i; break; }
+    }
+  }
+  
+  if (!activeDeck || !activeDeck.bpm) { panel.style.display = 'none'; return; }
+  
+  const refBPM = activeDeck.bpm * activeDeck.playbackRate;
+  const refKey = deckKeys[activeDeckIdx];
+  
+  // Score all tracks
+  const scored = [];
+  for (const t of allTracks) {
+    const bpm = trackBPMCache[t.name];
+    if (!bpm) continue;
+    
+    // Don't suggest currently loaded tracks
+    if (decks[0].trackName === cleanTrackName(t.name) || decks[1].trackName === cleanTrackName(t.name)) continue;
+    
+    let score = 0;
+    const bpmDiff = Math.abs(bpm - refBPM);
+    
+    // BPM compatibility (±5 BPM)
+    if (bpmDiff <= 2) score += 10;
+    else if (bpmDiff <= 5) score += 7;
+    else if (bpmDiff <= 8) score += 3;
+    else continue; // Skip if BPM is too far off
+    
+    // Check cached key
+    let trackKey = null;
+    try {
+      const cached = readTrackCache(t.name);
+      if (cached && cached.key) trackKey = cached.key;
+    } catch {}
+    
+    // Harmonic compatibility
+    if (refKey && trackKey) {
+      const harm = isHarmonicCompatible(refKey, trackKey);
+      score += harm.score;
+    }
+    
+    scored.push({ track: t, bpm, key: trackKey, score, bpmDiff });
+  }
+  
+  // Sort by score descending, take top 5
+  scored.sort((a, b) => b.score - a.score || a.bpmDiff - b.bpmDiff);
+  const top5 = scored.slice(0, 5);
+  
+  if (top5.length === 0) { panel.style.display = 'none'; return; }
+  
+  panel.style.display = '';
+  list.innerHTML = '';
+  
+  for (const item of top5) {
+    const cn = cleanTrackName(item.track.name);
+    const scoreClass = item.score >= 15 ? 'perfect' : 'good';
+    const keyStr = item.key ? item.key : '?';
+    const cam = getCamelot(item.key);
+    const camStr = cam ? cam.code : '';
+    
+    const div = document.createElement('div');
+    div.className = 'suggested-next-item';
+    div.innerHTML = `<span class="sn-score ${scoreClass}">${item.score}pt</span><span class="sn-name" title="${item.track.name}">${cn}</span><span class="sn-info">${item.bpm.toFixed(0)} · ${keyStr}${camStr ? ' ' + camStr : ''}</span><div class="sn-load-btns"><button class="load-btn d1" onclick="event.stopPropagation();loadToDeck(0,'${encodeURIComponent(item.track.name)}')">D1</button><button class="load-btn d2" onclick="event.stopPropagation();loadToDeck(1,'${encodeURIComponent(item.track.name)}')">D2</button></div>`;
+    list.appendChild(div);
+  }
+}
+
+// Helper to read track cache (from trackBPMCache or server cache) - returns key info
+function readTrackCache(filename) {
+  // We stored BPM in trackBPMCache, but keys were cached server-side
+  // Return null here; the actual key data is fetched during loadTrackBPMs
+  return _trackInfoCache[filename] || null;
+}
+
+// Extended track info cache (BPM + key)
+const _trackInfoCache = {};
+
+// Override loadTrackBPMs to also cache keys
+const _origLoadTrackBPMs = loadTrackBPMs;
+loadTrackBPMs = async function() {
+  for (const t of allTracks) {
+    try {
+      const resp = await fetch('/api/tracks/' + encodeURIComponent(t.name) + '/info');
+      if (resp.ok) {
+        const info = await resp.json();
+        if (info.bpm) trackBPMCache[t.name] = info.bpm;
+        _trackInfoCache[t.name] = info;
+      }
+    } catch {}
+  }
+  renderTrackList();
+  updateSuggestedNext();
+};
+
+// ==================== IMPROVED STEM-LIKE EQ ====================
+// Replace the simple shelf/peaking EQ with multi-stage filters for better isolation
+function upgradeDeckEQ(deck) {
+  // Disconnect old EQ chain
+  try {
+    deck.gainNode.disconnect(deck.eqHi);
+    deck.eqHi.disconnect(deck.eqMid);
+    deck.eqMid.disconnect(deck.eqLo);
+    deck.eqLo.disconnect(deck.colorFilter);
+  } catch {}
+
+  // Hi: steep highpass at 4kHz (vocals/cymbals) using cascaded biquads
+  deck.eqHi = actx.createBiquadFilter();
+  deck.eqHi.type = 'highshelf';
+  deck.eqHi.frequency.value = 4000;
+  deck.eqHi.gain.value = 0;
+  
+  deck.eqHiSteep = actx.createBiquadFilter();
+  deck.eqHiSteep.type = 'highshelf';
+  deck.eqHiSteep.frequency.value = 4000;
+  deck.eqHiSteep.gain.value = 0;
+
+  // Mid: bandpass 250Hz-4kHz (melodies/synths) using peaking with higher Q
+  deck.eqMid = actx.createBiquadFilter();
+  deck.eqMid.type = 'peaking';
+  deck.eqMid.frequency.value = 1000;
+  deck.eqMid.Q.value = 0.5;
+  deck.eqMid.gain.value = 0;
+  
+  deck.eqMidSteep = actx.createBiquadFilter();
+  deck.eqMidSteep.type = 'peaking';
+  deck.eqMidSteep.frequency.value = 1000;
+  deck.eqMidSteep.Q.value = 0.5;
+  deck.eqMidSteep.gain.value = 0;
+
+  // Lo: lowshelf at 250Hz (bass/kick) with steep rolloff
+  deck.eqLo = actx.createBiquadFilter();
+  deck.eqLo.type = 'lowshelf';
+  deck.eqLo.frequency.value = 250;
+  deck.eqLo.gain.value = 0;
+  
+  deck.eqLoSteep = actx.createBiquadFilter();
+  deck.eqLoSteep.type = 'lowshelf';
+  deck.eqLoSteep.frequency.value = 250;
+  deck.eqLoSteep.gain.value = 0;
+
+  // Reconnect: gainNode -> eqHi -> eqHiSteep -> eqMid -> eqMidSteep -> eqLo -> eqLoSteep -> colorFilter
+  deck.gainNode.connect(deck.eqHi);
+  deck.eqHi.connect(deck.eqHiSteep);
+  deck.eqHiSteep.connect(deck.eqMid);
+  deck.eqMid.connect(deck.eqMidSteep);
+  deck.eqMidSteep.connect(deck.eqLo);
+  deck.eqLo.connect(deck.eqLoSteep);
+  deck.eqLoSteep.connect(deck.colorFilter);
+}
+
+// Apply upgraded EQ to both decks
+for (let i = 0; i < 2; i++) upgradeDeckEQ(decks[i]);
+
+// Override applyKnob for the new EQ chain
+const _origApplyKnob = applyKnob;
+applyKnob = function(knob, angle) {
+  const param = knob.dataset.param;
+  const ch = parseInt(knob.dataset.ch);
+  const val = angle / 135;
+  const deck = decks[ch];
+
+  if (param === 'hi') {
+    const gain = val * 24;
+    deck.eqHi.gain.value = gain;
+    if (deck.eqHiSteep) deck.eqHiSteep.gain.value = gain * 0.7; // steeper slope
+  } else if (param === 'mid') {
+    const gain = val * 24;
+    deck.eqMid.gain.value = gain;
+    if (deck.eqMidSteep) deck.eqMidSteep.gain.value = gain * 0.7;
+  } else if (param === 'lo') {
+    const gain = val * 24;
+    deck.eqLo.gain.value = gain;
+    if (deck.eqLoSteep) deck.eqLoSteep.gain.value = gain * 0.7;
+  } else {
+    _origApplyKnob(knob, angle);
+  }
+};
+
 // ==================== ANIMATION LOOP ====================
 function animate() {
   requestAnimationFrame(animate);
@@ -2567,12 +2982,14 @@ function animate() {
   for (let i = 0; i < 2; i++) updateMarquee(i);
   // Update timeline periodically
   if (isRecording && timelineEntries.length > 0 && performance.now() % 60 < 17) renderTransitionTimeline();
+  updateEnergyMeter();
 }
 animate();
 
 // Periodic checks
 setInterval(updateBeatCounter, 50);
 setInterval(checkTrackEndWarning, 200);
+setInterval(updateSuggestedNext, 5000);
 setInterval(() => {
   const reduction = limiterNode.reduction;
   const indicator = document.getElementById('limiterIndicator');

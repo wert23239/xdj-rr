@@ -42,6 +42,7 @@
     <button class="mini-toggle" id="miniToggle" onclick="toggleMiniMixer()" data-tooltip="Minimal mixer layout">MINI</button>
     <button class="swap-btn" id="swapBtn" onclick="swapDecks()" data-tooltip="Swap deck 1 and deck 2">⇄ SWAP</button>
     <button class="beep-toggle" id="beepToggle" onclick="toggleBeepWarning()" data-tooltip="Beep warning when track ending">🔔 BEEP</button>
+    <button class="stats-btn" id="statsBtn" onclick="toggleSetStats()" data-tooltip="Set statistics">📊 STATS</button>
     <button class="parallel-wf-btn" id="parallelWfBtn" onclick="toggleParallelWaveforms()" data-tooltip="Show parallel waveforms">∥ WF</button>
     <button class="discover-btn" id="discoverBtn" onclick="toggleDiscover()" data-tooltip="Search & download songs">🔍 DISCOVER</button>
     <button class="help-btn" id="helpBtn" onclick="toggleShortcuts()" data-tooltip="Keyboard shortcuts">?</button>
@@ -54,6 +55,10 @@
     <div class="search-box"><input type="text" id="trackSearch" placeholder="Search tracks..." oninput="filterTracks(this.value)"></div>
     <div class="sort-controls"><label>Sort:</label><button class="sort-btn active" data-sort="date" onclick="sortTracks('date',this)">Date</button><button class="sort-btn" data-sort="name" onclick="sortTracks('name',this)">Name</button><button class="sort-btn" data-sort="size" onclick="sortTracks('size',this)">Size</button></div>
     <div class="track-list" id="trackList"></div>
+    <div class="suggested-next-panel" id="suggestedNextPanel" style="display:none">
+      <div class="suggested-next-header">🎯 Suggested Next</div>
+      <div class="suggested-next-list" id="suggestedNextList"></div>
+    </div>
   </div>
   <div class="controller">
     <div class="overview-waveforms">
@@ -158,6 +163,15 @@
           <button class="btn-sync" id="sync1">SYNC</button>
           <button class="btn-vinyl" id="vinyl1" onclick="toggleVinylBrake(0)">VINYL</button>
           <button class="btn-reverse" id="reverse1" onmousedown="startReverse(0)" onmouseup="stopReverse(0)" ontouchstart="startReverse(0)" ontouchend="stopReverse(0)">REV</button>
+          <button class="btn-tapestop" id="tapestop1" onclick="tapeStop(0)">TAPE</button>
+        </div>
+        <div class="stutter-section">
+          <span style="font-size:9px;color:#555">STUTTER</span>
+          <div class="stutter-pads">
+            <button class="stutter-pad" onmousedown="stutterStart(0,0.25)" onmouseup="stutterStop(0)" ontouchstart="stutterStart(0,0.25)" ontouchend="stutterStop(0)">1/4</button>
+            <button class="stutter-pad" onmousedown="stutterStart(0,0.125)" onmouseup="stutterStop(0)" ontouchstart="stutterStart(0,0.125)" ontouchend="stutterStop(0)">1/8</button>
+            <button class="stutter-pad" onmousedown="stutterStart(0,0.0625)" onmouseup="stutterStop(0)" ontouchstart="stutterStart(0,0.0625)" ontouchend="stutterStop(0)">1/16</button>
+          </div>
         </div>
         <div class="beat-jump-section">
           <button class="beat-jump-btn" onclick="beatJump(0,-32)">«32</button>
@@ -278,7 +292,14 @@
             <button class="automix-btn" onclick="autoMixTransition('echoOut')" title="Echo out transition">ECHO OUT</button>
             <button class="automix-btn" onclick="autoMixTransition('cutSwap')" title="Instant cut swap">CUT SWAP</button>
           </div>
-          <div class="automix-progress" id="automixProgress" style="display:none">
+          <div class="energy-meter-section">
+          <label>ENERGY</label>
+          <div class="energy-meter">
+            <div class="energy-meter-fill" id="energyMeterFill"></div>
+            <span class="energy-meter-label" id="energyMeterLabel">—</span>
+          </div>
+        </div>
+        <div class="automix-progress" id="automixProgress" style="display:none">
             <div class="automix-progress-bar"><div class="automix-progress-fill" id="automixProgressFill"></div></div>
             <span class="automix-progress-text" id="automixProgressText">—</span>
           </div>
@@ -382,6 +403,15 @@
           <button class="btn-sync" id="sync2">SYNC</button>
           <button class="btn-vinyl" id="vinyl2" onclick="toggleVinylBrake(1)">VINYL</button>
           <button class="btn-reverse" id="reverse2" onmousedown="startReverse(1)" onmouseup="stopReverse(1)" ontouchstart="startReverse(1)" ontouchend="stopReverse(1)">REV</button>
+          <button class="btn-tapestop" id="tapestop2" onclick="tapeStop(1)">TAPE</button>
+        </div>
+        <div class="stutter-section">
+          <span style="font-size:9px;color:#555">STUTTER</span>
+          <div class="stutter-pads">
+            <button class="stutter-pad" onmousedown="stutterStart(1,0.25)" onmouseup="stutterStop(1)" ontouchstart="stutterStart(1,0.25)" ontouchend="stutterStop(1)">1/4</button>
+            <button class="stutter-pad" onmousedown="stutterStart(1,0.125)" onmouseup="stutterStop(1)" ontouchstart="stutterStart(1,0.125)" ontouchend="stutterStop(1)">1/8</button>
+            <button class="stutter-pad" onmousedown="stutterStart(1,0.0625)" onmouseup="stutterStop(1)" ontouchstart="stutterStart(1,0.0625)" ontouchend="stutterStop(1)">1/16</button>
+          </div>
         </div>
         <div class="beat-jump-section">
           <button class="beat-jump-btn" onclick="beatJump(1,-32)">«32</button>
@@ -414,6 +444,20 @@
           <span style="font-size:9px;color:#555" id="tapInfo2">tap to set BPM</span>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- SET STATS MODAL -->
+<div class="stats-overlay" id="statsOverlay" onclick="if(event.target===this)toggleSetStats()">
+  <div class="stats-box">
+    <h2>📊 Set Statistics</h2>
+    <div class="stats-content" id="statsContent">
+      <div class="stat-row"><span class="stat-label">Total Tracks Played</span><span class="stat-value" id="statTracks">0</span></div>
+      <div class="stat-row"><span class="stat-label">Average BPM</span><span class="stat-value" id="statBPM">—</span></div>
+      <div class="stat-row"><span class="stat-label">Most Used Key</span><span class="stat-value" id="statKey">—</span></div>
+      <div class="stat-row"><span class="stat-label">Set Duration</span><span class="stat-value" id="statDuration">0:00:00</span></div>
+      <div class="stat-row"><span class="stat-label">Transitions</span><span class="stat-value" id="statTransitions">0</span></div>
     </div>
   </div>
 </div>

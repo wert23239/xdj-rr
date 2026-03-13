@@ -728,6 +728,49 @@ body.light-theme .deck-header{background:linear-gradient(180deg,#eee 0%,#e0e0e0 
 .automix-progress-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--deck1),#0f0,var(--deck2));border-radius:3px;transition:width 0.2s linear}
 .automix-progress-text{font-size:9px;color:#0f0;font-family:'Courier New',monospace;min-width:60px;text-align:right}
 
+/* ============ Stutter Effect ============ */
+.stutter-section{display:flex;flex-direction:column;align-items:center;gap:2px}
+.stutter-pads{display:flex;gap:3px;justify-content:center}
+.stutter-pad{padding:4px 8px;border:1px solid #553a1a;background:linear-gradient(180deg,#2a1a0a 0%,#1a0f05 100%);color:#f80;border-radius:var(--button-radius);font-size:9px;font-weight:700;cursor:pointer;touch-action:manipulation;box-shadow:0 2px 4px rgba(0,0,0,0.4);transition:all .08s}
+.stutter-pad:active,.stutter-pad.active{border-color:#f80;color:#fff;background:linear-gradient(180deg,#f80 0%,#a55000 100%);box-shadow:0 0 10px rgba(255,136,0,0.4)}
+
+/* ============ Tape Stop Button ============ */
+.btn-tapestop{background:linear-gradient(180deg,#2a2a30 0%,#1a1a1e 100%);color:#cc0;border:1px solid #4a4a1a;border-radius:5px;padding:10px 10px;font-size:9px;font-weight:700;cursor:pointer;text-transform:uppercase;box-shadow:0 3px 6px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.08);transition:all .1s}
+.btn-tapestop.stopping{border-color:#f33;color:#f33;background:linear-gradient(180deg,#3a0a0a 0%,#2a0505 100%);box-shadow:0 0 10px rgba(255,51,51,0.3)}
+.btn-tapestop.starting{border-color:#0c6;color:#0c6;background:linear-gradient(180deg,#0a2a1a 0%,#051a0f 100%);box-shadow:0 0 10px rgba(0,204,102,0.3)}
+
+/* ============ Energy Meter ============ */
+.energy-meter-section{display:flex;flex-direction:column;align-items:center;gap:2px;padding:2px 0}
+.energy-meter-section label{font-size:8px;color:#555;text-transform:uppercase;letter-spacing:1px}
+.energy-meter{width:100%;height:16px;background:#111114;border-radius:8px;position:relative;overflow:hidden;box-shadow:inset 0 1px 3px rgba(0,0,0,0.5)}
+.energy-meter-fill{height:100%;width:0%;border-radius:8px;transition:width 0.3s,background 0.3s;background:linear-gradient(90deg,#0c6,#cc0,#f80,#f33)}
+.energy-meter-label{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;text-shadow:0 0 4px rgba(0,0,0,0.8);letter-spacing:1px;text-transform:uppercase}
+
+/* ============ Suggested Next Panel ============ */
+.suggested-next-panel{border-top:1px solid #2a2a2e;background:linear-gradient(180deg,#0f1a0f 0%,#0a120a 100%);max-height:200px;overflow-y:auto}
+.suggested-next-header{padding:6px 12px;font-size:10px;color:#0c6;text-transform:uppercase;letter-spacing:1px;font-weight:700;border-bottom:1px solid #1a2a1a}
+.suggested-next-list{font-size:11px}
+.suggested-next-item{display:flex;align-items:center;padding:5px 12px;border-bottom:1px solid #1a2a1a;gap:6px;cursor:pointer;transition:background .1s}
+.suggested-next-item:hover{background:rgba(0,204,102,0.08)}
+.suggested-next-item .sn-score{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;min-width:36px;text-align:center;font-family:'Courier New',monospace}
+.suggested-next-item .sn-score.perfect{color:#0c6;background:#0a2a1a;border:1px solid #1a4a2a}
+.suggested-next-item .sn-score.good{color:#cc0;background:#2a2a0a;border:1px solid #4a4a1a}
+.suggested-next-item .sn-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#ccc}
+.suggested-next-item .sn-info{font-size:9px;color:#666;font-family:'Courier New',monospace;white-space:nowrap}
+.suggested-next-item .sn-load-btns{display:flex;gap:3px}
+.suggested-next-item .load-btn{padding:2px 6px;font-size:8px}
+
+/* ============ Set Statistics Modal ============ */
+.stats-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:1000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+.stats-overlay.open{display:flex}
+.stats-box{background:linear-gradient(180deg,#222226 0%,#1a1a1e 100%);border:1px solid #3a3a40;border-radius:10px;padding:20px 28px;max-width:420px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,0.6)}
+.stats-box h2{color:#ccc;font-size:16px;margin-bottom:16px;text-align:center}
+.stat-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2a2a2e;font-size:13px}
+.stat-label{color:#888}
+.stat-value{color:#e8a030;font-family:'Courier New',monospace;font-weight:700}
+.stats-btn{padding:4px 10px;border:1px solid #3a3a40;background:linear-gradient(180deg,#2a2a30 0%,#1a1a1e 100%);color:#888;border-radius:var(--button-radius);font-size:10px;cursor:pointer;text-transform:uppercase;font-weight:700;transition:all .15s;box-shadow:0 1px 3px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.05)}
+.stats-btn:hover{border-color:#e8a030;color:#e8a030}
+
 /* ============ Mobile Toolbar (hidden on desktop) ============ */
 .mobile-toolbar{display:none}
 .mobile-hidden{display:none !important}
