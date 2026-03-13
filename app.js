@@ -3241,6 +3241,16 @@ function animate() {
     }
     // Smooth BPM animation
     if (decks[i].bpm) animateNumber('bpm' + (i + 1), decks[i].bpm, 1);
+    // Update duration display
+    const durEl = document.getElementById('dur' + (i + 1));
+    if (durEl) {
+      if (dur > 0) {
+        const rem = Math.max(0, dur - t);
+        durEl.textContent = '-' + formatTime(rem);
+      } else {
+        durEl.textContent = '0:00';
+      }
+    }
   }
   drawPlayhead();
   drawOverviewPlayhead();

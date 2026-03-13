@@ -146,6 +146,7 @@ function extractPeaks(filePath, numPeaks = 800) {
       const audioStart = dataOffset + 8;
       const bytesPerSample = bitsPerSample / 8;
       const totalSamples = Math.floor(dataSize / (bytesPerSample * numChannels));
+      if (!isFinite(totalSamples) || totalSamples <= 0 || totalSamples > 100000000) return null;
       samples = new Float32Array(totalSamples);
       
       for (let i = 0; i < totalSamples && (audioStart + i * bytesPerSample * numChannels) < buf.length; i++) {
@@ -209,7 +210,7 @@ app.get('/api/health', (req, res) => {
   } catch {}
   res.json({
     status: 'ok',
-    version: 'v28',
+    version: 'v29',
     tracks: trackCount,
     uptime: Math.floor((Date.now() - startTime) / 1000),
     cacheDir: CACHE_DIR,
