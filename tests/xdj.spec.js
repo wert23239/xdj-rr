@@ -1176,3 +1176,108 @@ test.describe('Auto-Mix Progress', () => {
     await expect(page.locator('#automixProgress')).not.toBeVisible();
   });
 });
+
+// ============================================================
+// 60. MIDI SUPPORT
+// ============================================================
+
+test.describe('MIDI Support', () => {
+  test('MIDI indicator exists in topbar', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#midiIndicator')).toBeVisible();
+    await expect(page.locator('#midiIndicator')).toContainText('MIDI');
+  });
+
+  test('MIDI learn button exists and toggles', async ({ page }) => {
+    await page.goto('/');
+    const btn = page.locator('#midiLearnBtn');
+    await expect(btn).toBeVisible();
+    await btn.click();
+    await expect(btn).toHaveClass(/active/);
+    await expect(page.locator('body')).toHaveClass(/midi-learn-mode/);
+    await btn.click();
+    await expect(btn).not.toHaveClass(/active/);
+    await expect(page.locator('body')).not.toHaveClass(/midi-learn-mode/);
+  });
+});
+
+// ============================================================
+// 61. FULLSCREEN MODE
+// ============================================================
+
+test.describe('Fullscreen Mode', () => {
+  test('fullscreen button exists', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#fullscreenBtn')).toBeVisible();
+  });
+
+  test('fullscreen button is clickable', async ({ page }) => {
+    await page.goto('/');
+    // Fullscreen may not work in headless, but button should not crash
+    await page.locator('#fullscreenBtn').click();
+    await expect(page.locator('.logo')).toBeVisible();
+  });
+});
+
+// ============================================================
+// 62. AUTO-DJ MODE
+// ============================================================
+
+test.describe('Auto-DJ Mode', () => {
+  test('auto-DJ button exists and toggles', async ({ page }) => {
+    await page.goto('/');
+    const btn = page.locator('#autoDJBtn');
+    await expect(btn).toBeVisible();
+    await expect(btn).toContainText('AUTO-DJ');
+    await btn.click();
+    await expect(btn).toHaveClass(/active/);
+    await btn.click();
+    await expect(btn).not.toHaveClass(/active/);
+  });
+});
+
+// ============================================================
+// 63. COLOR ACCENT THEMES
+// ============================================================
+
+test.describe('Color Accent Themes', () => {
+  test('accent theme buttons exist', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#themeAccentSelector')).toBeVisible();
+    expect(await page.locator('.accent-btn').count()).toBe(3);
+  });
+
+  test('neon theme applies accent-neon class', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('.accent-btn[data-accent="neon"]').click();
+    await expect(page.locator('body')).toHaveClass(/accent-neon/);
+  });
+
+  test('minimal theme applies accent-minimal class', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('.accent-btn[data-accent="minimal"]').click();
+    await expect(page.locator('body')).toHaveClass(/accent-minimal/);
+  });
+
+  test('classic theme removes accent classes', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('.accent-btn[data-accent="neon"]').click();
+    await expect(page.locator('body')).toHaveClass(/accent-neon/);
+    await page.locator('.accent-btn[data-accent="classic"]').click();
+    await expect(page.locator('body')).not.toHaveClass(/accent-neon/);
+    await expect(page.locator('body')).not.toHaveClass(/accent-minimal/);
+  });
+});
+
+// ============================================================
+// 64. PARALLEL WAVEFORM BEAT-SYNC
+// ============================================================
+
+test.describe('Beat-Sync Visuals', () => {
+  test('parallel waveform canvases exist for beat sync', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#parallelWfBtn').click();
+    await expect(page.locator('#pwfCanvas1')).toBeAttached();
+    await expect(page.locator('#pwfCanvas2')).toBeAttached();
+  });
+});

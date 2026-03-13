@@ -2947,6 +2947,219 @@ applyKnob = function(knob, angle) {
   }
 };
 
+// ==================== FULLSCREEN MODE ====================
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  } else {
+    document.exitFullscreen().catch(() => {});
+  }
+}
+
+// F11 key support
+document.addEventListener('keydown', e => {
+  if (e.key === 'F11') {
+    e.preventDefault();
+    toggleFullscreen();
+  }
+});
+
+// ==================== COLOR ACCENT THEMES ====================
+let currentAccent = localStorage.getItem('xdj-accent') || 'classic';
+
+function setAccentTheme(accent) {
+  // Remove old accent classes
+  document.body.classList.remove('accent-neon', 'accent-minimal');
+  // Apply new
+  if (accent === 'neon') document.body.classList.add('accent-neon');
+  else if (accent === 'minimal') document.body.classList.add('accent-minimal');
+  currentAccent = accent;
+  localStorage.setItem('xdj-accent', accent);
+  // Update buttons
+  document.querySelectorAll('.accent-btn').forEach(b => b.classList.toggle('active', b.dataset.accent === accent));
+  // Redraw waveforms with new colors
+  decks.forEach(d => { if (d.buffer) { drawOverviewWaveform(d); drawStaticWaveform(d); } });
+}
+
+// Apply saved accent on load
+if (currentAccent !== 'classic') setAccentTheme(currentAccent);
+
+// ==================== AUTO-DJ MODE ====================
+let autoDJEnabled = false;
+let autoDJInterval = null;
+let autoDJTrackIndex = 0;
+let autoDJCrossfading = false;
+
+function toggleAutoDJ() {
+  autoDJEnabled = !autoDJEnabled;
+  document.getElementById('autoDJBtn').classList.toggle('active', autoDJEnabled);
+  if (autoDJEnabled) {
+    startAutoDJ();
+  } else {
+    stopAutoDJ();
+  }
+}
+
+function startAutoDJ() {
+  // If no track is playing, load and play first track on deck 1
+  if (!decks[0].playing && !decks[1].playing && allTracks.length > 0) {
+    autoDJTrackIndex = 0;
+    loadToDeck(0, encodeURIComponent(allTracks[0].name)).then(() => {
+      decks[0].play();
+    });
+  }
+  // Monitor for auto transitions
+  autoDJInterval = setInterval(checkAutoDJ, 1000);
+}
+
+function stopAutoDJ() {
+  if (autoDJInterval) { clearInterval(autoDJInterval); autoDJInterval = null; }
+  autoDJCrossfading = false;
+}
+
+function checkAutoDJ() {
+  if (!autoDJEnabled || autoDJCrossfading) return;
+  
+  // Find the currently playing deck
+  let playingDeck = -1;
+  for (let i = 0; i < 2; i++) {
+    if (decks[i].playing) { playingDeck = i; break; }
+  }
+  if (playingDeck === -1) return;
+  
+  const deck = decks[playingDeck];
+  const remaining = deck.getDuration() - deck.getCurrentTime();
+  
+  // When 30 seconds left, prepare and start transition
+  if (remaining <= 30 && remaining > 28) {
+    const otherDeck = 1 - playingDeck;
+    
+    // Don't load if other deck already has a track loaded and playing
+    if (decks[otherDeck].playing) return;
+    
+    // Find next track in browser
+    autoDJTrackIndex++;
+    if (autoDJTrackIndex >= allTracks.length) autoDJTrackIndex = 0;
+    
+    const nextTrack = allTracks[autoDJTrackIndex];
+    if (!nextTrack) return;
+    
+    autoDJCrossfading = true;
+    
+    // Load next track on other deck
+    loadToDeck(otherDeck, encodeURIComponent(nextTrack.name)).then(() => {
+      // Sync BPM
+      if (decks[otherDeck].bpm && deck.bpm) {
+        decks[otherDeck].sync(deck);
+      }
+      
+      // Start playing
+      decks[otherDeck].play();
+      
+      // Auto crossfade over 16 seconds
+      const cf = document.getElementById('crossfader');
+      const startVal = parseFloat(cf.value);
+      const targetVal = otherDeck === 1 ? 1 : 0;
+      const duration = 16000;
+      const steps = 160;
+      const stepMs = duration / steps;
+      let step = 0;
+      
+      const fadeInterval = setInterval(() => {
+        step++;
+        const progress = step / steps;
+        // S-curve for smooth transition
+        const sCurve = progress * progress * (3 - 2 * progress);
+        cf.value = startVal + (targetVal - startVal) * sCurve;
+        cf.dispatchEvent(new Event('input'));
+        
+        if (step >= steps) {
+          clearInterval(fadeInterval);
+          autoDJCrossfading = false;
+          // Stop the old deck
+          deck.stop();
+        }
+      }, stepMs);
+    }).catch(() => {
+      autoDJCrossfading = false;
+    });
+  }
+}
+
+// ==================== BEAT-SYNC VISUAL IN PARALLEL WAVEFORMS ====================
+const _origDrawParallelWaveforms = drawParallelWaveforms;
+drawParallelWaveforms = function() {
+  _origDrawParallelWaveforms();
+  if (!parallelWaveformsEnabled) return;
+  
+  // Only draw alignment when both decks are playing with BPM
+  if (!decks[0].playing || !decks[1].playing || !decks[0].bpm || !decks[1].bpm) return;
+  if (!decks[0].buffer || !decks[1].buffer) return;
+  
+  // Draw beat alignment lines on both canvases
+  const windowSec = 16;
+  
+  for (let i = 0; i < 2; i++) {
+    const otherDeck = decks[1 - i];
+    const canvas = document.getElementById('pwfCanvas' + (i + 1));
+    if (!canvas) continue;
+    const ctx = canvas.getContext('2d');
+    
+    const deck = decks[i];
+    const currentTime = deck.getCurrentTime();
+    let startSec = currentTime - windowSec / 2;
+    let endSec = currentTime + windowSec / 2;
+    if (startSec < 0) { endSec -= startSec; startSec = 0; }
+    if (endSec > deck.getDuration()) { startSec -= (endSec - deck.getDuration()); endSec = deck.getDuration(); startSec = Math.max(0, startSec); }
+    
+    // Get beat positions from the OTHER deck that align in this time window
+    const otherBeatDur = 60 / otherDeck.bpm;
+    const otherTime = otherDeck.getCurrentTime();
+    
+    // Find beats from other deck that fall in our time window
+    // Map other deck's beats to our timeline
+    const timeDiff = otherTime - currentTime;
+    const otherFirstBeat = Math.ceil((startSec + timeDiff) / otherBeatDur);
+    const otherLastBeat = Math.floor((endSec + timeDiff) / otherBeatDur);
+    
+    ctx.setLineDash([4, 4]);
+    for (let bt = otherFirstBeat; bt <= otherLastBeat; bt++) {
+      const otherBeatTime = bt * otherBeatDur;
+      // Convert to our deck's time reference
+      const ourTime = otherBeatTime - timeDiff;
+      if (ourTime < startSec || ourTime > endSec) continue;
+      
+      const bx = ((ourTime - startSec) / (endSec - startSec)) * canvas.width;
+      
+      // Check if this beat aligns with one of our beats
+      const thisBeatDur = 60 / deck.bpm;
+      const nearestBeatNum = Math.round(ourTime / thisBeatDur);
+      const nearestBeatTime = nearestBeatNum * thisBeatDur;
+      const alignmentError = Math.abs(ourTime - nearestBeatTime);
+      
+      if (alignmentError < 0.05) {
+        // Aligned! Green line
+        ctx.strokeStyle = 'rgba(0,255,0,0.6)';
+        ctx.lineWidth = 2;
+      } else if (alignmentError < 0.15) {
+        // Close, yellow
+        ctx.strokeStyle = 'rgba(255,255,0,0.3)';
+        ctx.lineWidth = 1;
+      } else {
+        // Not aligned, dim red
+        ctx.strokeStyle = 'rgba(255,0,0,0.15)';
+        ctx.lineWidth = 1;
+      }
+      
+      ctx.beginPath();
+      ctx.moveTo(bx, 0);
+      ctx.lineTo(bx, canvas.height);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+  }
+};
+
 // ==================== ANIMATION LOOP ====================
 function animate() {
   requestAnimationFrame(animate);

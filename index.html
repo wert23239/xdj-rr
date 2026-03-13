@@ -46,6 +46,15 @@
     <button class="parallel-wf-btn" id="parallelWfBtn" onclick="toggleParallelWaveforms()" data-tooltip="Show parallel waveforms">∥ WF</button>
     <button class="discover-btn" id="discoverBtn" onclick="toggleDiscover()" data-tooltip="Search & download songs">🔍 DISCOVER</button>
     <button class="help-btn" id="helpBtn" onclick="toggleShortcuts()" data-tooltip="Keyboard shortcuts">?</button>
+    <span class="midi-indicator" id="midiIndicator" title="No MIDI controller">MIDI</span>
+    <button class="midi-learn-btn" id="midiLearnBtn" onclick="toggleMIDILearn()" data-tooltip="MIDI Learn mode">🎹 MIDI LEARN</button>
+    <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" data-tooltip="Toggle fullscreen (F11)">⛶</button>
+    <button class="autodj-btn" id="autoDJBtn" onclick="toggleAutoDJ()" data-tooltip="Auto-DJ mode">🤖 AUTO-DJ</button>
+    <div class="theme-accent-selector" id="themeAccentSelector">
+      <button class="accent-btn active" data-accent="classic" onclick="setAccentTheme('classic')" title="Classic (Blue/Orange)">🔵</button>
+      <button class="accent-btn" data-accent="neon" onclick="setAccentTheme('neon')" title="Neon (Cyan/Magenta)">🟣</button>
+      <button class="accent-btn" data-accent="minimal" onclick="setAccentTheme('minimal')" title="Minimal (White/Gray)">⚪</button>
+    </div>
     <span id="status">Loading...</span>
   </div>
 </div>
@@ -541,6 +550,7 @@
 <script src="/sampler.js"></script>
 <script src="/discover.js"></script>
 <script src="/app.js"></script>
+<script src="/midi.js"></script>
 <script src="/mobile.js"></script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});</script>
 </body>
