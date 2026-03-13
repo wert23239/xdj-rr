@@ -47,6 +47,8 @@
   <div class="topbar-controls">
     <button class="rec-btn" id="recBtn" onclick="toggleRecording()" data-tooltip="Record tracklist"><span class="rec-dot"></span> REC</button>
     <button class="rec-mix-btn" id="recMixBtn" onclick="toggleMixRecording()" data-tooltip="Record audio mix"><span class="rec-dot"></span> REC MIX</button>
+    <span class="rec-timer" id="recTimer" style="display:none">0:00</span>
+    <button class="history-btn" id="historyBtn" onclick="toggleHistorySidebar()" data-tooltip="Track history sidebar">🕐 HISTORY</button>
     <button class="perf-toggle" id="perfToggle" onclick="togglePerformanceMode()" data-tooltip="Performance mode — hide browser, expand waveforms">PERFORMANCE</button>
     <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" data-tooltip="Toggle light/dark theme">☀️ LIGHT</button>
     <button class="mini-toggle" id="miniToggle" onclick="toggleMiniMixer()" data-tooltip="Minimal mixer layout">MINI</button>
@@ -143,10 +145,16 @@
           </div>
         </div>
         <div class="hotcue-section">
-          <button class="hotcue-btn" data-deck="0" data-cue="0" onclick="handleHotCue(0,0,event)">1</button>
-          <button class="hotcue-btn" data-deck="0" data-cue="1" onclick="handleHotCue(0,1,event)">2</button>
-          <button class="hotcue-btn" data-deck="0" data-cue="2" onclick="handleHotCue(0,2,event)">3</button>
-          <button class="hotcue-btn" data-deck="0" data-cue="3" onclick="handleHotCue(0,3,event)">4</button>
+          <div class="hotcue-with-label"><button class="hotcue-btn" data-deck="0" data-cue="0" onclick="handleHotCue(0,0,event)">1</button><span class="hotcue-label" data-deck="0" data-cue="0" onclick="editCueLabel(0,0,this)" title="Click to name"></span></div>
+          <div class="hotcue-with-label"><button class="hotcue-btn" data-deck="0" data-cue="1" onclick="handleHotCue(0,1,event)">2</button><span class="hotcue-label" data-deck="0" data-cue="1" onclick="editCueLabel(0,1,this)" title="Click to name"></span></div>
+          <div class="hotcue-with-label"><button class="hotcue-btn" data-deck="0" data-cue="2" onclick="handleHotCue(0,2,event)">3</button><span class="hotcue-label" data-deck="0" data-cue="2" onclick="editCueLabel(0,2,this)" title="Click to name"></span></div>
+          <div class="hotcue-with-label"><button class="hotcue-btn" data-deck="0" data-cue="3" onclick="handleHotCue(0,3,event)">4</button><span class="hotcue-label" data-deck="0" data-cue="3" onclick="editCueLabel(0,3,this)" title="Click to name"></span></div>
+        </div>
+        <div class="pitch-key-section">
+          <button class="pitch-range-btn" id="pitchRange0" onclick="cyclePitchRange(0)" data-tooltip="Toggle pitch range">±8%</button>
+          <button class="key-shift-btn" onclick="shiftKey(0,-1)" data-tooltip="Key down">KEY−</button>
+          <span class="key-shift-val" id="keyShift0">0st</span>
+          <button class="key-shift-btn" onclick="shiftKey(0,1)" data-tooltip="Key up">KEY+</button>
         </div>
         <div class="loop-section">
           <button class="loop-btn" data-deck="0" data-beats="0.5" onclick="toggleLoop(0,0.5,this)">1/2</button>
@@ -215,9 +223,9 @@
           <button class="log-btn" id="logBtn1" onclick="logTrack(0)" disabled>📝 LOG</button>
         </div>
         <div class="tempo-section">
-          <span style="font-size:9px;color:#555">−8</span>
+          <span class="tempo-range-label" id="tempoMin1" style="font-size:9px;color:#555">−8</span>
           <input type="range" class="tempo-slider" id="tempo1" min="-8" max="8" step="0.1" value="0">
-          <span style="font-size:9px;color:#555">+8</span>
+          <span class="tempo-range-label" id="tempoMax1" style="font-size:9px;color:#555">+8</span>
           <span class="tempo-val" id="tempoVal1">0.0%</span>
         </div>
         <div class="tap-section" style="display:flex;gap:6px;justify-content:center;align-items:center">
@@ -383,10 +391,16 @@
           </div>
         </div>
         <div class="hotcue-section">
-          <button class="hotcue-btn" data-deck="1" data-cue="0" onclick="handleHotCue(1,0,event)">1</button>
-          <button class="hotcue-btn" data-deck="1" data-cue="1" onclick="handleHotCue(1,1,event)">2</button>
-          <button class="hotcue-btn" data-deck="1" data-cue="2" onclick="handleHotCue(1,2,event)">3</button>
-          <button class="hotcue-btn" data-deck="1" data-cue="3" onclick="handleHotCue(1,3,event)">4</button>
+          <div class="hotcue-with-label"><button class="hotcue-btn" data-deck="1" data-cue="0" onclick="handleHotCue(1,0,event)">1</button><span class="hotcue-label" data-deck="1" data-cue="0" onclick="editCueLabel(1,0,this)" title="Click to name"></span></div>
+          <div class="hotcue-with-label"><button class="hotcue-btn" data-deck="1" data-cue="1" onclick="handleHotCue(1,1,event)">2</button><span class="hotcue-label" data-deck="1" data-cue="1" onclick="editCueLabel(1,1,this)" title="Click to name"></span></div>
+          <div class="hotcue-with-label"><button class="hotcue-btn" data-deck="1" data-cue="2" onclick="handleHotCue(1,2,event)">3</button><span class="hotcue-label" data-deck="1" data-cue="2" onclick="editCueLabel(1,2,this)" title="Click to name"></span></div>
+          <div class="hotcue-with-label"><button class="hotcue-btn" data-deck="1" data-cue="3" onclick="handleHotCue(1,3,event)">4</button><span class="hotcue-label" data-deck="1" data-cue="3" onclick="editCueLabel(1,3,this)" title="Click to name"></span></div>
+        </div>
+        <div class="pitch-key-section">
+          <button class="pitch-range-btn" id="pitchRange1" onclick="cyclePitchRange(1)" data-tooltip="Toggle pitch range">±8%</button>
+          <button class="key-shift-btn" onclick="shiftKey(1,-1)" data-tooltip="Key down">KEY−</button>
+          <span class="key-shift-val" id="keyShift1">0st</span>
+          <button class="key-shift-btn" onclick="shiftKey(1,1)" data-tooltip="Key up">KEY+</button>
         </div>
         <div class="loop-section">
           <button class="loop-btn" data-deck="1" data-beats="0.5" onclick="toggleLoop(1,0.5,this)">1/2</button>
@@ -455,9 +469,9 @@
           <button class="log-btn" id="logBtn2" onclick="logTrack(1)" disabled>📝 LOG</button>
         </div>
         <div class="tempo-section">
-          <span style="font-size:9px;color:#555">−8</span>
+          <span class="tempo-range-label" id="tempoMin2" style="font-size:9px;color:#555">−8</span>
           <input type="range" class="tempo-slider" id="tempo2" min="-8" max="8" step="0.1" value="0">
-          <span style="font-size:9px;color:#555">+8</span>
+          <span class="tempo-range-label" id="tempoMax2" style="font-size:9px;color:#555">+8</span>
           <span class="tempo-val" id="tempoVal2">0.0%</span>
         </div>
         <div class="tap-section" style="display:flex;gap:6px;justify-content:center;align-items:center">
@@ -528,7 +542,7 @@
 <div class="about-overlay" id="aboutOverlay" onclick="if(event.target===this)toggleAboutPanel()">
   <div class="about-box">
     <h2>ⓘ About XDJ-RR</h2>
-    <div class="about-version">v27</div>
+    <div class="about-version">v28</div>
     <div class="about-content">
       <div class="stat-row"><span class="stat-label">Tracks in Library</span><span class="stat-value" id="aboutTrackCount">—</span></div>
       <div class="stat-row"><span class="stat-label">Waveform Cache</span><span class="stat-value" id="aboutWaveformStatus">—</span></div>
@@ -553,7 +567,27 @@
   </div>
 </div>
 
-<!-- TRACK HISTORY -->
+<!-- RECORDING PANEL -->
+<div class="recording-panel" id="recordingPanel" style="display:none">
+  <div class="recording-header">
+    <label>🎙 Recording</label>
+    <span class="rec-timer-big" id="recTimerBig">0:00:00</span>
+    <button class="rec-download-btn" id="recDownloadBtn" onclick="downloadRecording()" style="display:none">💾 Download</button>
+    <select id="recFormatSelect"><option value="webm">WebM/Opus</option><option value="wav">WAV</option></select>
+  </div>
+  <canvas id="recWaveformCanvas" class="rec-waveform-canvas"></canvas>
+</div>
+
+<!-- TRACK HISTORY SIDEBAR -->
+<div class="history-sidebar" id="historySidebar" style="display:none">
+  <div class="history-sidebar-header">
+    <label>🕐 Session Track History</label>
+    <button class="history-close-btn" onclick="toggleHistorySidebar()">✕</button>
+  </div>
+  <div class="history-sidebar-entries" id="historySidebarEntries"></div>
+</div>
+
+<!-- TRACK HISTORY (inline) -->
 <div class="history-panel" id="historyPanel">
   <div class="history-header"><label>🕐 Track History (last 10)</label></div>
   <div id="historyEntries"></div>

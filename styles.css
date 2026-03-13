@@ -935,6 +935,52 @@ body{transition:background 0.3s ease,color 0.3s ease}
 .sound-wave-bars .sw-bar:nth-child(4){animation-delay:0.45s;height:10px}
 @keyframes sw-bounce{0%,100%{height:3px}50%{height:12px}}
 
+/* ============ Recording Panel ============ */
+.recording-panel{background:#0a0a0c;border-top:1px solid #2a2a2e;flex-shrink:0;padding:0}
+.recording-header{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:linear-gradient(180deg,#1a0a0a 0%,#0d0505 100%);border-bottom:1px solid #2a2a2e;gap:8px}
+.recording-header label{font-size:10px;color:#f33;text-transform:uppercase;letter-spacing:1px;font-weight:700}
+.rec-timer,.rec-timer-big{font-family:'Courier New',monospace;color:#f33;font-weight:700;text-shadow:0 0 6px rgba(255,51,51,0.4)}
+.rec-timer{font-size:11px;margin-left:4px}
+.rec-timer-big{font-size:16px}
+.rec-download-btn{padding:4px 10px;border:1px solid #1a4a2a;background:linear-gradient(180deg,#0a2a1a 0%,#051a0f 100%);color:#0c6;border-radius:var(--button-radius);font-size:10px;cursor:pointer;font-weight:700}
+.rec-download-btn:hover{border-color:#0c6;box-shadow:0 0 6px rgba(0,204,102,0.3)}
+.rec-waveform-canvas{width:100%;height:40px;display:block;background:#050508}
+#recFormatSelect{background:#1a1a1e;color:#ccc;border:1px solid #333;border-radius:3px;padding:2px 6px;font-size:10px}
+
+/* ============ History Sidebar ============ */
+.history-sidebar{position:fixed;right:0;top:36px;bottom:0;width:320px;background:linear-gradient(180deg,#131315 0%,#0e0e10 100%);border-left:1px solid #2a2a2e;z-index:500;display:flex;flex-direction:column;box-shadow:-4px 0 20px rgba(0,0,0,0.5);overflow:hidden}
+.history-sidebar-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:linear-gradient(180deg,#1a1a1e 0%,#131315 100%);border-bottom:1px solid #2a2a2e}
+.history-sidebar-header label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px;font-weight:700}
+.history-close-btn{background:none;border:none;color:#888;font-size:16px;cursor:pointer;padding:2px 6px}
+.history-close-btn:hover{color:#fff}
+.history-sidebar-entries{flex:1;overflow-y:auto;font-size:11px}
+.history-sidebar-entry{padding:8px 14px;border-bottom:1px solid #1a1a1e;display:flex;flex-direction:column;gap:3px}
+.history-sidebar-entry .hs-top{display:flex;justify-content:space-between;align-items:center}
+.history-sidebar-entry .hs-deck{font-size:9px;font-weight:700;min-width:24px}
+.history-sidebar-entry .hs-deck.d1{color:var(--deck1)}.history-sidebar-entry .hs-deck.d2{color:var(--deck2)}
+.history-sidebar-entry .hs-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#ccc;margin:0 8px}
+.history-sidebar-entry .hs-time{font-size:9px;color:#555;font-family:'Courier New',monospace}
+.history-sidebar-entry .hs-meta{display:flex;gap:8px;font-size:9px;color:#666}
+.history-sidebar-entry .hs-bpm{color:#e8a030;font-family:'Courier New',monospace}
+.history-sidebar-entry .hs-transition{color:#cc0}
+.history-sidebar-entry .hs-key{color:#0c6}
+.history-btn{padding:4px 10px;border:1px solid #3a3a40;background:linear-gradient(180deg,#2a2a30 0%,#1a1a1e 100%);color:#888;border-radius:var(--button-radius);font-size:10px;cursor:pointer;text-transform:uppercase;font-weight:700;transition:all .15s;box-shadow:0 1px 3px rgba(0,0,0,0.4)}
+.history-btn.active{border-color:#0af;color:#0af;background:linear-gradient(180deg,#0a1a2a 0%,#050f1a 100%)}
+
+/* ============ Cue Point Labels ============ */
+.hotcue-with-label{display:flex;flex-direction:column;align-items:center;gap:1px}
+.hotcue-label{font-size:7px;color:#888;max-width:40px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;min-height:10px;line-height:10px}
+.hotcue-label:hover{color:#fff}
+.hotcue-label-input{width:40px;font-size:7px;background:#111;border:1px solid #0af;color:#fff;text-align:center;border-radius:2px;padding:0 2px;outline:none}
+
+/* ============ Pitch Range & Key Shift ============ */
+.pitch-key-section{display:flex;gap:4px;justify-content:center;align-items:center}
+.pitch-range-btn{padding:3px 8px;border:1px solid #3a3a40;background:linear-gradient(180deg,#222226 0%,#1a1a1e 100%);color:#e8a030;border-radius:var(--button-radius);font-size:9px;cursor:pointer;font-weight:700;font-family:'Courier New',monospace;box-shadow:0 2px 4px rgba(0,0,0,0.4);transition:all .1s}
+.pitch-range-btn:hover{border-color:#e8a030}
+.key-shift-btn{padding:3px 6px;border:1px solid #3a3a40;background:linear-gradient(180deg,#222226 0%,#1a1a1e 100%);color:#0c6;border-radius:var(--button-radius);font-size:8px;cursor:pointer;font-weight:700;box-shadow:0 2px 4px rgba(0,0,0,0.4);transition:all .08s}
+.key-shift-btn:active{background:linear-gradient(180deg,#0a2a1a 0%,#051a0f 100%);color:#fff;transform:translateY(1px)}
+.key-shift-val{font-size:9px;color:#0c6;font-family:'Courier New',monospace;min-width:24px;text-align:center}
+
 /* ============ Mobile Toolbar (hidden on desktop) ============ */
 .mobile-toolbar{display:none}
 .mobile-hidden{display:none !important}

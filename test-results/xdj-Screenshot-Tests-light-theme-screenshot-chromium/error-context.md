@@ -1,0 +1,628 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]: PIONEER XDJ-RR
+    - generic [ref=e7]: 0:00:00
+    - generic [ref=e8]:
+      - button "REC" [ref=e9] [cursor=pointer]: REC
+      - button "REC MIX" [ref=e11] [cursor=pointer]: REC MIX
+      - button "🕐 HISTORY" [ref=e13] [cursor=pointer]
+      - button "PERFORMANCE" [ref=e14] [cursor=pointer]
+      - button "🌙 DARK Toggle light/dark theme" [active] [ref=e15] [cursor=pointer]
+      - button "MINI" [ref=e16] [cursor=pointer]
+      - button "⇄ SWAP" [ref=e17] [cursor=pointer]
+      - button "🔔 BEEP" [ref=e18] [cursor=pointer]
+      - button "📊 STATS" [ref=e19] [cursor=pointer]
+      - button "∥ WF" [ref=e20] [cursor=pointer]
+      - button "🔍 DISCOVER" [ref=e21] [cursor=pointer]
+      - button "?" [ref=e22] [cursor=pointer]
+      - generic "No MIDI controller" [ref=e23]: MIDI
+      - button "🎹 MIDI LEARN" [ref=e24] [cursor=pointer]
+      - button "⛶" [ref=e25] [cursor=pointer]
+      - button "🤖 AUTO-DJ" [ref=e26] [cursor=pointer]
+      - button "🔒 M.TEMPO" [ref=e27] [cursor=pointer]
+      - button "ⓘ" [ref=e28] [cursor=pointer]
+      - generic [ref=e29]:
+        - button "🔵" [ref=e30] [cursor=pointer]
+        - button "🟣" [ref=e31] [cursor=pointer]
+        - button "⚪" [ref=e32] [cursor=pointer]
+      - generic [ref=e33]: 50 tracks loaded
+      - generic "JS Heap Memory Usage"
+  - generic [ref=e34]:
+    - generic [ref=e35]:
+      - generic [ref=e36]: Track Browser
+      - textbox "Search tracks..." [ref=e38]
+      - generic [ref=e39]:
+        - generic [ref=e40]: "Sort:"
+        - button "Date" [ref=e41] [cursor=pointer]
+        - button "Name" [ref=e42] [cursor=pointer]
+        - button "Size" [ref=e43] [cursor=pointer]
+      - generic [ref=e44]:
+        - generic [ref=e45]:
+          - generic "Michelle - Pulse.wav" [ref=e46]: Michelle - Pulse
+          - generic [ref=e47]:
+            - button "D1" [ref=e48] [cursor=pointer]
+            - button "D2" [ref=e49] [cursor=pointer]
+        - generic [ref=e50]:
+          - generic "Lola Young - Messy (Jesse Bloch Remix).wav" [ref=e51]: Lola Young - Messy
+          - generic [ref=e52]:
+            - button "D1" [ref=e53] [cursor=pointer]
+            - button "D2" [ref=e54] [cursor=pointer]
+        - generic [ref=e55]:
+          - generic "ISOKNOCK, ISOxo, Knock2, cade clair - 4EVR.wav" [ref=e56]: ISOKNOCK, ISOxo, Knock2, cade clair - 4EVR
+          - generic [ref=e57]:
+            - button "D1" [ref=e58] [cursor=pointer]
+            - button "D2" [ref=e59] [cursor=pointer]
+        - generic [ref=e60]:
+          - generic "Lola Young - Messy.wav" [ref=e61]: Lola Young - Messy
+          - generic [ref=e62]:
+            - button "D1" [ref=e63] [cursor=pointer]
+            - button "D2" [ref=e64] [cursor=pointer]
+        - generic [ref=e65]:
+          - generic "ALLDAY PROJECT, ANNIE, WOOCHAN - WHERE YOU AT.wav" [ref=e66]: ALLDAY PROJECT, ANNIE, WOOCHAN - WHERE YOU AT
+          - generic [ref=e67]:
+            - button "D1" [ref=e68] [cursor=pointer]
+            - button "D2" [ref=e69] [cursor=pointer]
+        - generic [ref=e70]:
+          - generic "Harrisun, Teddy Roxpin - tell me if u like it.wav" [ref=e71]: Harrisun, Teddy Roxpin - tell me if u like it
+          - generic [ref=e72]:
+            - button "D1" [ref=e73] [cursor=pointer]
+            - button "D2" [ref=e74] [cursor=pointer]
+        - generic [ref=e75]:
+          - generic "Doechii - Nissan Altima (Afro House Remix).wav" [ref=e76]: Doechii - Nissan Altima
+          - generic [ref=e77]:
+            - button "D1" [ref=e78] [cursor=pointer]
+            - button "D2" [ref=e79] [cursor=pointer]
+        - generic [ref=e80]:
+          - generic "NIKI - lowkey (Shambles Remix).wav" [ref=e81]: NIKI - lowkey
+          - generic [ref=e82]:
+            - button "D1" [ref=e83] [cursor=pointer]
+            - button "D2" [ref=e84] [cursor=pointer]
+        - generic [ref=e85]:
+          - generic "Sweet but Psycho.wav" [ref=e86]: Sweet but Psycho
+          - generic [ref=e87]:
+            - button "D1" [ref=e88] [cursor=pointer]
+            - button "D2" [ref=e89] [cursor=pointer]
+        - generic [ref=e90]:
+          - generic "Sweet but Psycho (Morgan Page Dance Remix).wav" [ref=e91]: Sweet but Psycho
+          - generic [ref=e92]:
+            - button "D1" [ref=e93] [cursor=pointer]
+            - button "D2" [ref=e94] [cursor=pointer]
+        - generic [ref=e95]:
+          - generic "Disco Lines & Ship Wrek - I Don't Trust A Soul.wav" [ref=e96]: Disco Lines & Ship Wrek - I Don't Trust A Soul
+          - generic [ref=e97]:
+            - button "D1" [ref=e98] [cursor=pointer]
+            - button "D2" [ref=e99] [cursor=pointer]
+        - generic [ref=e100]:
+          - generic "Billie Eilish - Birds Of A Feather (Horacio's Dance To Dawn Remix).wav" [ref=e101]: Billie Eilish - Birds Of A Feather
+          - generic [ref=e102]:
+            - button "D1" [ref=e103] [cursor=pointer]
+            - button "D2" [ref=e104] [cursor=pointer]
+        - generic [ref=e105]:
+          - generic "Elohim - Go Through It (Official Visualizer).wav" [ref=e106]: Elohim - Go Through It
+          - generic [ref=e107]:
+            - button "D1" [ref=e108] [cursor=pointer]
+            - button "D2" [ref=e109] [cursor=pointer]
+        - generic [ref=e110]:
+          - generic "Cupid (OT4⧸Twin Ver.) - LIVE IN STUDIO ｜ FIFTY FIFTY (피프티피프티).wav" [ref=e111]: Cupid - ｜ FIFTY FIFTY
+          - generic [ref=e112]:
+            - button "D1" [ref=e113] [cursor=pointer]
+            - button "D2" [ref=e114] [cursor=pointer]
+        - generic [ref=e115]:
+          - generic "Damager.wav" [ref=e116]: Damager
+          - generic [ref=e117]:
+            - button "D1" [ref=e118] [cursor=pointer]
+            - button "D2" [ref=e119] [cursor=pointer]
+        - generic [ref=e120]:
+          - generic "MISS YOU.wav" [ref=e121]: MISS YOU
+          - generic [ref=e122]:
+            - button "D1" [ref=e123] [cursor=pointer]
+            - button "D2" [ref=e124] [cursor=pointer]
+        - generic [ref=e125]:
+          - generic "John Summit - Crystallized.wav" [ref=e126]: John Summit - Crystallized
+          - generic [ref=e127]:
+            - button "D1" [ref=e128] [cursor=pointer]
+            - button "D2" [ref=e129] [cursor=pointer]
+        - generic [ref=e130]:
+          - generic "John Summit - Shiver.wav" [ref=e131]: John Summit - Shiver
+          - generic [ref=e132]:
+            - button "D1" [ref=e133] [cursor=pointer]
+            - button "D2" [ref=e134] [cursor=pointer]
+        - generic [ref=e135]:
+          - generic "Vanic - Too Soon (Audio) ft. Maty Noyes.wav" [ref=e136]: Vanic - Too Soon . Maty Noyes
+          - generic [ref=e137]:
+            - button "D1" [ref=e138] [cursor=pointer]
+            - button "D2" [ref=e139] [cursor=pointer]
+        - generic [ref=e140]:
+          - generic "dutchkid - Wildflower (Official Lyric Video).wav" [ref=e141]: dutchkid - Wildflower
+          - generic [ref=e142]:
+            - button "D1" [ref=e143] [cursor=pointer]
+            - button "D2" [ref=e144] [cursor=pointer]
+        - generic [ref=e145]:
+          - generic "Bea Miller, Aminé - FEEL SOMETHING DIFFERENT.wav" [ref=e146]: Bea Miller, Aminé - FEEL SOMETHING DIFFERENT
+          - generic [ref=e147]:
+            - button "D1" [ref=e148] [cursor=pointer]
+            - button "D2" [ref=e149] [cursor=pointer]
+        - generic [ref=e150]:
+          - generic "La Felix - Comes & Goes.wav" [ref=e151]: La Felix - Comes & Goes
+          - generic [ref=e152]:
+            - button "D1" [ref=e153] [cursor=pointer]
+            - button "D2" [ref=e154] [cursor=pointer]
+        - generic [ref=e155]:
+          - generic "Alan Walker, Dash Berlin & Vikkstar - Better Off (Alone, Pt. III) - Official Music Video.wav" [ref=e156]: Alan Walker, Dash Berlin & Vikkstar - Better Off -
+          - generic [ref=e157]:
+            - button "D1" [ref=e158] [cursor=pointer]
+            - button "D2" [ref=e159] [cursor=pointer]
+        - generic [ref=e160]:
+          - generic "Mumbai Science - Lotus (Album Version).wav" [ref=e161]: Mumbai Science - Lotus
+          - generic [ref=e162]:
+            - button "D1" [ref=e163] [cursor=pointer]
+            - button "D2" [ref=e164] [cursor=pointer]
+        - generic [ref=e165]:
+          - generic "DJ_Dave - Still Miss U.wav" [ref=e166]: DJ_Dave - Still Miss U
+          - generic [ref=e167]:
+            - button "D1" [ref=e168] [cursor=pointer]
+            - button "D2" [ref=e169] [cursor=pointer]
+        - generic [ref=e170]:
+          - generic "17. WELKER (BR) - Ice In My Eyes (Extended Mix).wav" [ref=e171]: 17. WELKER - Ice In My Eyes
+          - generic [ref=e172]:
+            - button "D1" [ref=e173] [cursor=pointer]
+            - button "D2" [ref=e174] [cursor=pointer]
+        - generic [ref=e175]:
+          - generic "BLOCKED - G Luné.wav" [ref=e176]: BLOCKED - G Luné
+          - generic [ref=e177]:
+            - button "D1" [ref=e178] [cursor=pointer]
+            - button "D2" [ref=e179] [cursor=pointer]
+        - generic [ref=e180]:
+          - generic "We R Who We R - New Beat Order.wav" [ref=e181]: We R Who We R - New Beat Order
+          - generic [ref=e182]:
+            - button "D1" [ref=e183] [cursor=pointer]
+            - button "D2" [ref=e184] [cursor=pointer]
+        - generic [ref=e185]:
+          - generic "[278509342] Michael Jackson - Beat It.mp3" [ref=e186]: Michael Jackson - Beat It
+          - generic [ref=e187]:
+            - button "D1" [ref=e188] [cursor=pointer]
+            - button "D2" [ref=e189] [cursor=pointer]
+        - generic [ref=e190]:
+          - generic "[1449724846] G Luné - BLOCKED.mp3" [ref=e191]: G Luné - BLOCKED
+          - generic [ref=e192]:
+            - button "D1" [ref=e193] [cursor=pointer]
+            - button "D2" [ref=e194] [cursor=pointer]
+        - generic [ref=e195]:
+          - generic "Doechii - Nissan Altima (Devault Remix).mp3" [ref=e196]: Doechii - Nissan Altima
+          - generic [ref=e197]:
+            - button "D1" [ref=e198] [cursor=pointer]
+            - button "D2" [ref=e199] [cursor=pointer]
+        - generic [ref=e200]:
+          - generic "Ian Asher - Think Youre Someone New.wav" [ref=e201]: Ian Asher - Think Youre Someone New
+          - generic [ref=e202]:
+            - button "D1" [ref=e203] [cursor=pointer]
+            - button "D2" [ref=e204] [cursor=pointer]
+        - generic [ref=e205]:
+          - generic "ZHU - Faded (ODESZA Remix).wav" [ref=e206]: ZHU - Faded
+          - generic [ref=e207]:
+            - button "D1" [ref=e208] [cursor=pointer]
+            - button "D2" [ref=e209] [cursor=pointer]
+        - generic [ref=e210]:
+          - generic "Madonna - Hung Up (SDP Extended Vocal).wav" [ref=e211]: Madonna - Hung Up
+          - generic [ref=e212]:
+            - button "D1" [ref=e213] [cursor=pointer]
+            - button "D2" [ref=e214] [cursor=pointer]
+        - generic [ref=e215]:
+          - generic "02. Joni pres. Molay - Drifting Off (1985 Remix).wav" [ref=e216]: 02. Joni pres. Molay - Drifting Off
+          - generic [ref=e217]:
+            - button "D1" [ref=e218] [cursor=pointer]
+            - button "D2" [ref=e219] [cursor=pointer]
+        - generic [ref=e220]:
+          - generic "think you're someone new.mp3" [ref=e221]: think you're someone new
+          - generic [ref=e222]:
+            - button "D1" [ref=e223] [cursor=pointer]
+            - button "D2" [ref=e224] [cursor=pointer]
+        - generic [ref=e225]:
+          - generic "WELKER-IceInMyEyes.wav" [ref=e226]: WELKER-IceInMyEyes
+          - generic [ref=e227]:
+            - button "D1" [ref=e228] [cursor=pointer]
+            - button "D2" [ref=e229] [cursor=pointer]
+        - generic [ref=e230]:
+          - generic "WELKER (BR) - Ice In My Eyes (Extended Mix).wav" [ref=e231]: WELKER - Ice In My Eyes
+          - generic [ref=e232]:
+            - button "D1" [ref=e233] [cursor=pointer]
+            - button "D2" [ref=e234] [cursor=pointer]
+        - generic [ref=e235]:
+          - generic "Faded (ODESZA Remix) - ZHU.wav" [ref=e236]: Faded - ZHU
+          - generic [ref=e237]:
+            - button "D1" [ref=e238] [cursor=pointer]
+            - button "D2" [ref=e239] [cursor=pointer]
+        - generic [ref=e240]:
+          - generic "Beat It - Michael Jackson.wav" [ref=e241]: Beat It - Michael Jackson
+          - generic [ref=e242]:
+            - button "D1" [ref=e243] [cursor=pointer]
+            - button "D2" [ref=e244] [cursor=pointer]
+        - generic [ref=e245]:
+          - generic "Victory Lap (WARTHOG Remix) — Fred again.wav" [ref=e246]: Victory Lap — Fred again
+          - generic [ref=e247]:
+            - button "D1" [ref=e248] [cursor=pointer]
+            - button "D2" [ref=e249] [cursor=pointer]
+        - generic [ref=e250]:
+          - generic "Victory Lap — Fred again, Skepta, Plaqueboymax.wav" [ref=e251]: Victory Lap — Fred again, Skepta, Plaqueboymax
+          - generic [ref=e252]:
+            - button "D1" [ref=e253] [cursor=pointer]
+            - button "D2" [ref=e254] [cursor=pointer]
+        - generic [ref=e255]:
+          - generic "David Guetta, Teddy Swims, Tones and I - Gone Gone Gone [Official Studio Video] - NA.mp3" [ref=e256]: David Guetta, Teddy Swims, Tones and I - Gone Gone Gone
+          - generic [ref=e257]:
+            - button "D1" [ref=e258] [cursor=pointer]
+            - button "D2" [ref=e259] [cursor=pointer]
+        - generic [ref=e260]:
+          - generic "Sabrina Carpenter - When Did You Get Hot？ (Official Lyric Video) - NA.mp3" [ref=e261]: Sabrina Carpenter - When Did You Get Hot？
+          - generic [ref=e262]:
+            - button "D1" [ref=e263] [cursor=pointer]
+            - button "D2" [ref=e264] [cursor=pointer]
+        - generic [ref=e265]:
+          - generic "PinkPantheress - Stateside + Zara Larsson (Official Video) - NA.mp3" [ref=e266]: PinkPantheress - Stateside + Zara Larsson
+          - generic [ref=e267]:
+            - button "D1" [ref=e268] [cursor=pointer]
+            - button "D2" [ref=e269] [cursor=pointer]
+        - generic [ref=e270]:
+          - generic "RAYE - WHERE IS MY HUSBAND! (Official Music Video) - NA.mp3" [ref=e271]: RAYE - WHERE IS MY HUSBAND!
+          - generic [ref=e272]:
+            - button "D1" [ref=e273] [cursor=pointer]
+            - button "D2" [ref=e274] [cursor=pointer]
+        - generic [ref=e275]:
+          - generic "Kehlani - Folded [Official Music Video] - NA.mp3" [ref=e276]: Kehlani - Folded
+          - generic [ref=e277]:
+            - button "D1" [ref=e278] [cursor=pointer]
+            - button "D2" [ref=e279] [cursor=pointer]
+        - generic [ref=e280]:
+          - generic "Tate McRae - TIT FOR TAT (Lyric Video) - NA.mp3" [ref=e281]: Tate McRae - TIT FOR TAT
+          - generic [ref=e282]:
+            - button "D1" [ref=e283] [cursor=pointer]
+            - button "D2" [ref=e284] [cursor=pointer]
+        - generic [ref=e285]:
+          - generic "Don Toliver - Body [Official Visualizer] - NA.mp3" [ref=e286]: Don Toliver - Body
+          - generic [ref=e287]:
+            - button "D1" [ref=e288] [cursor=pointer]
+            - button "D2" [ref=e289] [cursor=pointer]
+        - generic [ref=e290]:
+          - generic "Harry Styles - Aperture (Official Video) - NA.mp3" [ref=e291]: Harry Styles - Aperture
+          - generic [ref=e292]:
+            - button "D1" [ref=e293] [cursor=pointer]
+            - button "D2" [ref=e294] [cursor=pointer]
+    - generic [ref=e295]:
+      - generic [ref=e302]:
+        - generic [ref=e303]:
+          - generic [ref=e305]:
+            - generic [ref=e307]: DECK 1
+            - generic [ref=e308]: 0:00
+          - generic [ref=e309]:
+            - button "🎨" [ref=e310] [cursor=pointer]
+            - button "−" [ref=e311] [cursor=pointer]
+            - button "+" [ref=e312] [cursor=pointer]
+        - generic [ref=e314]:
+          - generic [ref=e316]:
+            - generic [ref=e318]: DECK 2
+            - generic [ref=e319]: 0:00
+          - generic [ref=e320]:
+            - button "🎨" [ref=e321] [cursor=pointer]
+            - button "−" [ref=e322] [cursor=pointer]
+            - button "+" [ref=e323] [cursor=pointer]
+      - generic [ref=e329]: Phase
+      - generic [ref=e337]:
+        - generic [ref=e338]:
+          - generic: DECK 1
+          - generic [ref=e339]:
+            - generic [ref=e340]: DECK 1
+            - generic [ref=e341]: "KEY: —"
+            - generic [ref=e342]: "---.-"
+          - generic [ref=e360]:
+            - generic [ref=e361]: "1"
+            - generic [ref=e362]: "2"
+            - generic [ref=e363]: "3"
+            - generic [ref=e364]: "4"
+          - generic [ref=e395]:
+            - generic [ref=e396]:
+              - button "1" [ref=e397] [cursor=pointer]
+              - generic "Click to name"
+            - generic [ref=e398]:
+              - button "2" [ref=e399] [cursor=pointer]
+              - generic "Click to name"
+            - generic [ref=e400]:
+              - button "3" [ref=e401] [cursor=pointer]
+              - generic "Click to name"
+            - generic [ref=e402]:
+              - button "4" [ref=e403] [cursor=pointer]
+              - generic "Click to name"
+          - generic [ref=e404]:
+            - button "±8%" [ref=e405] [cursor=pointer]
+            - button "KEY−" [ref=e406] [cursor=pointer]
+            - generic [ref=e407]: 0st
+            - button "KEY+" [ref=e408] [cursor=pointer]
+          - generic [ref=e409]:
+            - button "1/2" [ref=e410] [cursor=pointer]
+            - button "1" [ref=e411] [cursor=pointer]
+            - button "2" [ref=e412] [cursor=pointer]
+            - button "4" [ref=e413] [cursor=pointer]
+            - button "8" [ref=e414] [cursor=pointer]
+          - generic [ref=e415]:
+            - generic [ref=e416]: SLICER
+            - generic [ref=e417]:
+              - button "1" [ref=e418] [cursor=pointer]
+              - button "2" [ref=e419] [cursor=pointer]
+              - button "3" [ref=e420] [cursor=pointer]
+              - button "4" [ref=e421] [cursor=pointer]
+              - button "5" [ref=e422] [cursor=pointer]
+              - button "6" [ref=e423] [cursor=pointer]
+              - button "7" [ref=e424] [cursor=pointer]
+              - button "8" [ref=e425] [cursor=pointer]
+          - generic [ref=e426]:
+            - generic [ref=e427]: ROLL
+            - generic [ref=e428]:
+              - button "1/16" [ref=e429] [cursor=pointer]
+              - button "1/8" [ref=e430] [cursor=pointer]
+              - button "1/4" [ref=e431] [cursor=pointer]
+              - button "1/2" [ref=e432] [cursor=pointer]
+              - button "1" [ref=e433] [cursor=pointer]
+          - generic [ref=e434]:
+            - button "CUE" [ref=e435] [cursor=pointer]
+            - button "▶ PLAY" [ref=e436] [cursor=pointer]
+            - button "SYNC" [ref=e437] [cursor=pointer]
+            - button "VINYL" [ref=e438] [cursor=pointer]
+            - button "REV" [ref=e439] [cursor=pointer]
+            - button "TAPE" [ref=e440] [cursor=pointer]
+          - generic [ref=e441]:
+            - generic [ref=e442]: STUTTER
+            - generic [ref=e443]:
+              - button "1/4" [ref=e444] [cursor=pointer]
+              - button "1/8" [ref=e445] [cursor=pointer]
+              - button "1/16" [ref=e446] [cursor=pointer]
+          - generic [ref=e447]:
+            - button "«32" [ref=e448] [cursor=pointer]
+            - button "«8" [ref=e449] [cursor=pointer]
+            - button "«1" [ref=e450] [cursor=pointer]
+            - generic [ref=e451]: BEAT JUMP
+            - button "1»" [ref=e452] [cursor=pointer]
+            - button "8»" [ref=e453] [cursor=pointer]
+            - button "32»" [ref=e454] [cursor=pointer]
+          - generic [ref=e455]:
+            - button "−" [ref=e456] [cursor=pointer]
+            - generic [ref=e457]: NUDGE
+            - button "+" [ref=e458] [cursor=pointer]
+          - generic [ref=e459]:
+            - button "🎧 CUE" [ref=e460] [cursor=pointer]
+            - button "SLIP" [ref=e461] [cursor=pointer]
+            - button "Q" [ref=e462] [cursor=pointer]
+            - button "📝 LOG" [disabled] [ref=e463]
+          - generic [ref=e464]:
+            - generic [ref=e465]: −8
+            - slider [ref=e466]: "0"
+            - generic [ref=e467]: "+8"
+            - generic [ref=e468]: 0.0%
+          - generic [ref=e469]:
+            - button "TAP" [ref=e470] [cursor=pointer]
+            - generic [ref=e471]: tap to set BPM
+        - generic [ref=e472]:
+          - generic [ref=e473]: Mixer
+          - generic [ref=e474]:
+            - generic [ref=e475]:
+              - generic [ref=e476]: CH1
+              - generic "GAIN" [ref=e477] [cursor=pointer]
+              - generic [ref=e479]: Gain
+              - generic [ref=e480]: 0dB
+              - generic [ref=e481]:
+                - generic "HI" [ref=e482] [cursor=pointer]
+                - button "K" [ref=e484] [cursor=pointer]
+              - generic [ref=e485]: Hi
+              - generic [ref=e486]:
+                - generic "MID" [ref=e487] [cursor=pointer]
+                - button "K" [ref=e489] [cursor=pointer]
+              - generic [ref=e490]: Mid
+              - generic [ref=e491]:
+                - generic "LO" [ref=e492] [cursor=pointer]
+                - button "K" [ref=e494] [cursor=pointer]
+              - generic [ref=e495]: Lo
+            - generic [ref=e496]:
+              - generic [ref=e497]: CH2
+              - generic "GAIN" [ref=e498] [cursor=pointer]
+              - generic [ref=e500]: Gain
+              - generic [ref=e501]: 0dB
+              - generic [ref=e502]:
+                - generic "HI" [ref=e503] [cursor=pointer]
+                - button "K" [ref=e505] [cursor=pointer]
+              - generic [ref=e506]: Hi
+              - generic [ref=e507]:
+                - generic "MID" [ref=e508] [cursor=pointer]
+                - button "K" [ref=e510] [cursor=pointer]
+              - generic [ref=e511]: Mid
+              - generic [ref=e512]:
+                - generic "LO" [ref=e513] [cursor=pointer]
+                - button "K" [ref=e515] [cursor=pointer]
+              - generic [ref=e516]: Lo
+          - generic [ref=e517]:
+            - generic [ref=e518]: Color FX
+            - generic [ref=e519]:
+              - generic "Filter CH1" [ref=e520] [cursor=pointer]
+              - generic "Filter CH2" [ref=e522] [cursor=pointer]
+            - generic [ref=e524] [cursor=pointer]: "NOISE: OFF"
+          - generic [ref=e525]:
+            - generic [ref=e526]:
+              - text: Master
+              - generic "Limiter" [ref=e527]
+            - slider [ref=e528]: "1"
+            - generic [ref=e529]: 100%
+          - generic [ref=e530]:
+            - generic [ref=e531]: —
+            - generic [ref=e532]: —
+          - button "AUTO-GAIN" [ref=e534] [cursor=pointer]
+          - generic [ref=e535]:
+            - generic [ref=e536]:
+              - generic [ref=e537]: CH1
+              - slider [ref=e538]: "0.85"
+            - generic [ref=e543]:
+              - generic [ref=e544]: CH2
+              - slider [ref=e545]: "0.85"
+          - generic [ref=e546]:
+            - generic [ref=e547]: Crossfader
+            - slider [ref=e548]: "0.5"
+          - generic [ref=e550]:
+            - generic [ref=e551]: "CURVE:"
+            - button "SMOOTH" [ref=e552] [cursor=pointer]
+            - button "SHARP" [ref=e553] [cursor=pointer]
+            - button "POWER" [ref=e554] [cursor=pointer]
+          - generic [ref=e555]:
+            - generic [ref=e556]: CUE/MASTER
+            - generic "CUE/MASTER MIX" [ref=e557] [cursor=pointer]
+            - generic [ref=e559]: CUE ◆ MST
+          - generic [ref=e560]:
+            - button "← D1" [ref=e561] [cursor=pointer]
+            - button "D2 →" [ref=e562] [cursor=pointer]
+          - generic [ref=e563]:
+            - generic [ref=e564]: Auto-Mix
+            - generic [ref=e565]:
+              - button "16-BAR" [ref=e566] [cursor=pointer]
+              - button "ECHO OUT" [ref=e567] [cursor=pointer]
+              - button "CUT SWAP" [ref=e568] [cursor=pointer]
+            - generic [ref=e569]:
+              - generic [ref=e570]: ENERGY
+              - generic [ref=e572]: LOW
+          - generic [ref=e573]:
+            - generic [ref=e574]: Sampler
+            - generic [ref=e575]:
+              - button "AIR HORN" [ref=e576] [cursor=pointer]:
+                - text: AIR
+                - text: HORN
+              - button "SIREN" [ref=e577] [cursor=pointer]
+              - button "SCRATCH" [ref=e578] [cursor=pointer]
+              - button "CROWD" [ref=e579] [cursor=pointer]
+          - generic [ref=e580]:
+            - generic [ref=e581]: Beat FX
+            - generic [ref=e582]:
+              - button "Echo" [ref=e583] [cursor=pointer]
+              - button "Reverb" [ref=e584] [cursor=pointer]
+              - button "Delay" [ref=e585] [cursor=pointer]
+              - button "Flanger" [ref=e586] [cursor=pointer]
+              - button "Phaser" [ref=e587] [cursor=pointer]
+              - button "Crush" [ref=e588] [cursor=pointer]
+            - generic [ref=e589]:
+              - button "Echo" [ref=e590] [cursor=pointer]
+              - button "Reverb" [ref=e591] [cursor=pointer]
+              - button "Delay" [ref=e592] [cursor=pointer]
+              - button "Flanger" [ref=e593] [cursor=pointer]
+              - button "Phaser" [ref=e594] [cursor=pointer]
+              - button "Crush" [ref=e595] [cursor=pointer]
+            - generic [ref=e596]:
+              - generic [ref=e597]: WET/DRY
+              - generic "FX Wet/Dry CH1" [ref=e598] [cursor=pointer]
+              - generic "FX Wet/Dry CH2" [ref=e600] [cursor=pointer]
+              - generic [ref=e602]: WET/DRY
+        - generic [ref=e603]:
+          - generic: DECK 2
+          - generic [ref=e604]:
+            - generic [ref=e605]: DECK 2
+            - generic [ref=e606]: "KEY: —"
+            - generic [ref=e607]: "---.-"
+          - generic [ref=e625]:
+            - generic [ref=e626]: "1"
+            - generic [ref=e627]: "2"
+            - generic [ref=e628]: "3"
+            - generic [ref=e629]: "4"
+          - generic [ref=e660]:
+            - generic [ref=e661]:
+              - button "1" [ref=e662] [cursor=pointer]
+              - generic "Click to name"
+            - generic [ref=e663]:
+              - button "2" [ref=e664] [cursor=pointer]
+              - generic "Click to name"
+            - generic [ref=e665]:
+              - button "3" [ref=e666] [cursor=pointer]
+              - generic "Click to name"
+            - generic [ref=e667]:
+              - button "4" [ref=e668] [cursor=pointer]
+              - generic "Click to name"
+          - generic [ref=e669]:
+            - button "±8%" [ref=e670] [cursor=pointer]
+            - button "KEY−" [ref=e671] [cursor=pointer]
+            - generic [ref=e672]: 0st
+            - button "KEY+" [ref=e673] [cursor=pointer]
+          - generic [ref=e674]:
+            - button "1/2" [ref=e675] [cursor=pointer]
+            - button "1" [ref=e676] [cursor=pointer]
+            - button "2" [ref=e677] [cursor=pointer]
+            - button "4" [ref=e678] [cursor=pointer]
+            - button "8" [ref=e679] [cursor=pointer]
+          - generic [ref=e680]:
+            - generic [ref=e681]: SLICER
+            - generic [ref=e682]:
+              - button "1" [ref=e683] [cursor=pointer]
+              - button "2" [ref=e684] [cursor=pointer]
+              - button "3" [ref=e685] [cursor=pointer]
+              - button "4" [ref=e686] [cursor=pointer]
+              - button "5" [ref=e687] [cursor=pointer]
+              - button "6" [ref=e688] [cursor=pointer]
+              - button "7" [ref=e689] [cursor=pointer]
+              - button "8" [ref=e690] [cursor=pointer]
+          - generic [ref=e691]:
+            - generic [ref=e692]: ROLL
+            - generic [ref=e693]:
+              - button "1/16" [ref=e694] [cursor=pointer]
+              - button "1/8" [ref=e695] [cursor=pointer]
+              - button "1/4" [ref=e696] [cursor=pointer]
+              - button "1/2" [ref=e697] [cursor=pointer]
+              - button "1" [ref=e698] [cursor=pointer]
+          - generic [ref=e699]:
+            - button "CUE" [ref=e700] [cursor=pointer]
+            - button "▶ PLAY" [ref=e701] [cursor=pointer]
+            - button "SYNC" [ref=e702] [cursor=pointer]
+            - button "VINYL" [ref=e703] [cursor=pointer]
+            - button "REV" [ref=e704] [cursor=pointer]
+            - button "TAPE" [ref=e705] [cursor=pointer]
+          - generic [ref=e706]:
+            - generic [ref=e707]: STUTTER
+            - generic [ref=e708]:
+              - button "1/4" [ref=e709] [cursor=pointer]
+              - button "1/8" [ref=e710] [cursor=pointer]
+              - button "1/16" [ref=e711] [cursor=pointer]
+          - generic [ref=e712]:
+            - button "«32" [ref=e713] [cursor=pointer]
+            - button "«8" [ref=e714] [cursor=pointer]
+            - button "«1" [ref=e715] [cursor=pointer]
+            - generic [ref=e716]: BEAT JUMP
+            - button "1»" [ref=e717] [cursor=pointer]
+            - button "8»" [ref=e718] [cursor=pointer]
+            - button "32»" [ref=e719] [cursor=pointer]
+          - generic [ref=e720]:
+            - button "−" [ref=e721] [cursor=pointer]
+            - generic [ref=e722]: NUDGE
+            - button "+" [ref=e723] [cursor=pointer]
+          - generic [ref=e724]:
+            - button "🎧 CUE" [ref=e725] [cursor=pointer]
+            - button "SLIP" [ref=e726] [cursor=pointer]
+            - button "Q" [ref=e727] [cursor=pointer]
+            - button "📝 LOG" [disabled] [ref=e728]
+          - generic [ref=e729]:
+            - generic [ref=e730]: −8
+            - slider [ref=e731]: "0"
+            - generic [ref=e732]: "+8"
+            - generic [ref=e733]: 0.0%
+          - generic [ref=e734]:
+            - button "TAP" [ref=e735] [cursor=pointer]
+            - generic [ref=e736]: tap to set BPM
+  - generic [ref=e739]: 🕐 Track History (last 10)
+  - generic [ref=e741]:
+    - generic [ref=e742]: 🎵 Playlists
+    - generic [ref=e743]:
+      - combobox [ref=e744]:
+        - option "— select playlist —" [selected]
+      - textbox "New playlist name" [ref=e745]
+      - button "+ New" [ref=e746] [cursor=pointer]
+      - button "+D1" [ref=e747] [cursor=pointer]
+      - button "+D2" [ref=e748] [cursor=pointer]
+      - button "🗑" [ref=e749] [cursor=pointer]
+  - generic [ref=e751]:
+    - generic [ref=e752]: 📋 Tracklist
+    - generic [ref=e753]:
+      - button "📥 Export" [ref=e754] [cursor=pointer]
+      - combobox [ref=e755]:
+        - option "— select session —" [selected]
+```

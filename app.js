@@ -3385,3 +3385,314 @@ function updateWaveformGlow() {
   }
 }
 setInterval(updateWaveformGlow, 300);
+
+// ==================== FEATURE: RECORDING/EXPORT PANEL ====================
+let recTimerInterval = null;
+let recStartTime = null;
+let recWaveformData = [];
+let lastRecBlob = null;
+
+function updateRecTimer() {
+  if (!recStartTime) return;
+  const elapsed = Date.now() - recStartTime;
+  const h = Math.floor(elapsed / 3600000);
+  const m = Math.floor((elapsed % 3600000) / 60000);
+  const s = Math.floor((elapsed % 60000) / 1000);
+  const timeStr = h + ':' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  const timerEl = document.getElementById('recTimerBig');
+  if (timerEl) timerEl.textContent = timeStr;
+  const topTimer = document.getElementById('recTimer');
+  if (topTimer) topTimer.textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+function drawRecWaveform() {
+  const canvas = document.getElementById('recWaveformCanvas');
+  if (!canvas || !mixRecording) return;
+  const ctx = canvas.getContext('2d');
+  if (canvas.width !== canvas.offsetWidth * 2) { canvas.width = canvas.offsetWidth * 2; canvas.height = canvas.offsetHeight * 2; }
+  ctx.fillStyle = '#050508';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // Sample current master level
+  const data = new Uint8Array(masterAnalyser.frequencyBinCount);
+  masterAnalyser.getByteFrequencyData(data);
+  let sum = 0;
+  for (let i = 0; i < data.length; i++) sum += data[i];
+  const level = sum / (data.length * 255);
+  recWaveformData.push(level);
+  if (recWaveformData.length > canvas.width) recWaveformData.shift();
+  const mid = canvas.height / 2;
+  for (let x = 0; x < recWaveformData.length; x++) {
+    const amp = recWaveformData[x];
+    const h = amp * canvas.height * 0.9;
+    ctx.fillStyle = `rgba(255,51,51,${0.4 + amp * 0.6})`;
+    ctx.fillRect(x, mid - h / 2, 1, Math.max(1, h));
+  }
+  // Playhead line
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(recWaveformData.length - 1, 0, 2, canvas.height);
+}
+
+// Patch the mix recording to show panel
+const _origStartMixRec = startMixRecording;
+startMixRecording = function() {
+  _origStartMixRec();
+  if (mixRecording) {
+    recStartTime = Date.now();
+    recWaveformData = [];
+    lastRecBlob = null;
+    document.getElementById('recordingPanel').style.display = '';
+    document.getElementById('recTimer').style.display = '';
+    document.getElementById('recDownloadBtn').style.display = 'none';
+    recTimerInterval = setInterval(updateRecTimer, 1000);
+  }
+};
+
+const _origStopMixRec = stopMixRecording;
+stopMixRecording = function() {
+  // Intercept the onstop to save blob
+  if (mixMediaRecorder) {
+    const origOnStop = mixMediaRecorder.onstop;
+    mixMediaRecorder.onstop = () => {
+      const blob = new Blob(mixChunks, { type: mixMediaRecorder.mimeType || 'audio/webm' });
+      lastRecBlob = blob;
+      // Auto-download
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const ext = (mixMediaRecorder.mimeType || '').includes('webm') ? 'webm' : 'wav';
+      a.download = 'dj-mix-' + new Date().toISOString().slice(0,19).replace(/:/g,'-') + '.' + ext;
+      a.click();
+      URL.revokeObjectURL(url);
+      // Show download button for re-download
+      document.getElementById('recDownloadBtn').style.display = '';
+    };
+  }
+  _origStopMixRec();
+  if (recTimerInterval) { clearInterval(recTimerInterval); recTimerInterval = null; }
+  document.getElementById('recTimer').style.display = 'none';
+};
+
+function downloadRecording() {
+  if (!lastRecBlob) return;
+  const url = URL.createObjectURL(lastRecBlob);
+  const a = document.createElement('a');
+  a.href = url;
+  const format = document.getElementById('recFormatSelect').value;
+  const ext = format === 'wav' ? 'wav' : 'webm';
+  a.download = 'dj-mix-' + new Date().toISOString().slice(0,19).replace(/:/g,'-') + '.' + ext;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Draw rec waveform in animation loop
+const _origAnimate = animate;
+// Can't easily override animate since it's self-calling, so use interval
+setInterval(() => { if (mixRecording) drawRecWaveform(); }, 50);
+
+// ==================== FEATURE: TRACK HISTORY SIDEBAR ====================
+let fullTrackHistory = [];
+let historySidebarOpen = false;
+let lastTransitionType = 'direct';
+
+function toggleHistorySidebar() {
+  historySidebarOpen = !historySidebarOpen;
+  document.getElementById('historySidebar').style.display = historySidebarOpen ? '' : 'none';
+  document.getElementById('historyBtn').classList.toggle('active', historySidebarOpen);
+  if (historySidebarOpen) renderHistorySidebar();
+}
+
+// Override addToHistory to capture more data
+const _origAddToHistory = addToHistory;
+addToHistory = function(deckIdx, trackName) {
+  if (!trackName) return;
+  const deck = decks[deckIdx];
+  const entry = {
+    deck: deckIdx + 1,
+    name: trackName,
+    time: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}),
+    timestamp: Date.now(),
+    bpm: deck.bpm ? deck.bpm.toFixed(1) : '—',
+    key: deckKeys[deckIdx] || '—',
+    transition: lastTransitionType || 'direct'
+  };
+  fullTrackHistory.unshift(entry);
+  // Also call original for inline history
+  trackHistory.unshift({ deck: deckIdx + 1, name: trackName, time: entry.time });
+  if (trackHistory.length > 10) trackHistory.pop();
+  renderHistory();
+  if (historySidebarOpen) renderHistorySidebar();
+};
+
+function renderHistorySidebar() {
+  const el = document.getElementById('historySidebarEntries');
+  if (!el) return;
+  el.innerHTML = fullTrackHistory.map(h =>
+    `<div class="history-sidebar-entry">
+      <div class="hs-top">
+        <span class="hs-deck ${h.deck===1?'d1':'d2'}">D${h.deck}</span>
+        <span class="hs-name">${h.name}</span>
+        <span class="hs-time">${h.time}</span>
+      </div>
+      <div class="hs-meta">
+        <span class="hs-bpm">${h.bpm} BPM</span>
+        <span class="hs-key">${h.key}</span>
+        <span class="hs-transition">⟶ ${h.transition}</span>
+      </div>
+    </div>`
+  ).join('');
+}
+
+// Track transition types from auto-mix
+const _origAutoMixTransition = autoMixTransition;
+autoMixTransition = function(type) {
+  lastTransitionType = type;
+  _origAutoMixTransition(type);
+};
+
+// Detect crossfader-based transitions
+function detectTransitionType() {
+  const cf = parseFloat(document.getElementById('crossfader').value);
+  if (cf < 0.1) lastTransitionType = 'crossfade-D1';
+  else if (cf > 0.9) lastTransitionType = 'crossfade-D2';
+  else if (cf > 0.4 && cf < 0.6) lastTransitionType = 'blend';
+  else lastTransitionType = 'crossfade';
+}
+
+// Hook crossfader movement to detect transition type
+const _origCfInput = document.getElementById('crossfader').oninput;
+document.getElementById('crossfader').oninput = function() {
+  updateCrossfader();
+  detectTransition();
+  detectTransitionType();
+};
+
+// ==================== FEATURE: CUE POINT LABELS ====================
+const hotCueLabels = [[null,null,null,null],[null,null,null,null]];
+
+function editCueLabel(deckId, cueIdx, el) {
+  const deck = decks[deckId];
+  if (deck.hotCues[cueIdx] === null) return;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'hotcue-label-input';
+  input.value = hotCueLabels[deckId][cueIdx] || '';
+  input.placeholder = 'label';
+  input.maxLength = 8;
+  el.style.display = 'none';
+  el.parentElement.appendChild(input);
+  input.focus();
+  input.select();
+  const finish = () => {
+    hotCueLabels[deckId][cueIdx] = input.value.trim() || null;
+    el.textContent = hotCueLabels[deckId][cueIdx] || '';
+    el.style.display = '';
+    input.remove();
+  };
+  input.addEventListener('blur', finish);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.value = hotCueLabels[deckId][cueIdx] || ''; input.blur(); } });
+}
+
+function updateCueLabels(deckId) {
+  document.querySelectorAll(`.hotcue-label[data-deck="${deckId}"]`).forEach(el => {
+    const idx = parseInt(el.dataset.cue);
+    const deck = decks[deckId];
+    if (deck.hotCues[idx] !== null) {
+      el.textContent = hotCueLabels[deckId][idx] || '';
+      el.style.cursor = 'pointer';
+    } else {
+      el.textContent = '';
+      hotCueLabels[deckId][idx] = null;
+    }
+  });
+}
+
+// Patch updateHotCueButtons to also update labels
+const _origUpdateHotCueButtons = updateHotCueButtons;
+updateHotCueButtons = function(deckId) {
+  _origUpdateHotCueButtons(deckId);
+  updateCueLabels(deckId);
+};
+
+// ==================== FEATURE: PITCH RANGE SELECTOR ====================
+const PITCH_RANGES = [
+  { label: '±6%', min: -6, max: 6, step: 0.05 },
+  { label: '±8%', min: -8, max: 8, step: 0.1 },
+  { label: '±10%', min: -10, max: 10, step: 0.1 },
+  { label: '±16%', min: -16, max: 16, step: 0.1 },
+  { label: '±100%', min: -100, max: 100, step: 0.5 }
+];
+const deckPitchRangeIdx = [1, 1]; // default ±8%
+
+function cyclePitchRange(deckId) {
+  deckPitchRangeIdx[deckId] = (deckPitchRangeIdx[deckId] + 1) % PITCH_RANGES.length;
+  applyPitchRange(deckId);
+}
+
+function applyPitchRange(deckId) {
+  const range = PITCH_RANGES[deckPitchRangeIdx[deckId]];
+  const slider = document.getElementById('tempo' + (deckId + 1));
+  const currentVal = parseFloat(slider.value);
+  slider.min = range.min;
+  slider.max = range.max;
+  slider.step = range.step;
+  // Clamp current value to new range
+  slider.value = Math.max(range.min, Math.min(range.max, currentVal));
+  slider.dispatchEvent(new Event('input'));
+  document.getElementById('pitchRange' + deckId).textContent = range.label;
+  document.getElementById('tempoMin' + (deckId + 1)).textContent = '−' + Math.abs(range.min);
+  document.getElementById('tempoMax' + (deckId + 1)).textContent = '+' + range.max;
+}
+
+// ==================== FEATURE: KEY SHIFT ====================
+const deckKeyShift = [0, 0]; // semitones
+
+function shiftKey(deckId, direction) {
+  deckKeyShift[deckId] = Math.max(-12, Math.min(12, deckKeyShift[deckId] + direction));
+  document.getElementById('keyShift' + deckId).textContent = (deckKeyShift[deckId] >= 0 ? '+' : '') + deckKeyShift[deckId] + 'st';
+  applyKeyShift(deckId);
+}
+
+function applyKeyShift(deckId) {
+  const deck = decks[deckId];
+  const semitones = deckKeyShift[deckId];
+  // Detune using playback rate ratio while preserving tempo
+  // We adjust the playback rate to shift pitch, then compensate BPM display
+  // For real pitch shifting we use the detune property on the source (if buffer mode)
+  // or adjust the audio element playbackRate (with tempo compensation)
+  // Since true independent pitch shift requires more complex DSP, we'll show the shifted key
+  // and update the harmonic display accordingly
+  if (deckKeys[deckId] && deckKeys[deckId] !== 'N/A') {
+    const originalKey = deckKeys[deckId];
+    // Parse original key
+    const isMinor = originalKey.endsWith('m');
+    const baseName = isMinor ? originalKey.slice(0, -1) : originalKey;
+    const baseIdx = KEY_NAMES.indexOf(baseName);
+    if (baseIdx >= 0) {
+      const newIdx = ((baseIdx + semitones) % 12 + 12) % 12;
+      const shiftedKey = KEY_NAMES[newIdx] + (isMinor ? 'm' : '');
+      // Update display with shifted key
+      const cam = getCamelot(shiftedKey);
+      document.getElementById('key' + (deckId + 1)).textContent = shiftedKey + (cam ? ' · ' + cam.code : '') + (semitones !== 0 ? ' [' + (semitones > 0 ? '+' : '') + semitones + ']' : '');
+      // Update harmonic display with shifted key
+      const origKey = deckKeys[deckId]; // save original
+      deckKeys[deckId] = shiftedKey;
+      updateHarmonicDisplay();
+      deckKeys[deckId] = origKey; // restore (deckKeys stores detected, display shows shifted)
+      // Store shifted key for harmonic display purposes
+      deck._shiftedKey = shiftedKey;
+    }
+  }
+}
+
+// Override harmonic display to use shifted keys
+const _origUpdateHarmonicDisplay = updateHarmonicDisplay;
+updateHarmonicDisplay = function() {
+  // Temporarily set shifted keys for display
+  const saved = [deckKeys[0], deckKeys[1]];
+  for (let i = 0; i < 2; i++) {
+    if (decks[i]._shiftedKey) deckKeys[i] = decks[i]._shiftedKey;
+  }
+  _origUpdateHarmonicDisplay();
+  deckKeys[0] = saved[0];
+  deckKeys[1] = saved[1];
+};

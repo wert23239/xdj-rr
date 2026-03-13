@@ -1317,7 +1317,7 @@ test.describe('About Panel', () => {
     await page.locator('#infoBtn').click();
     await expect(page.locator('#aboutOverlay')).toBeVisible();
     await expect(page.locator('.about-box')).toContainText('About XDJ-RR');
-    await expect(page.locator('.about-version')).toContainText('v27');
+    await expect(page.locator('.about-version')).toContainText('v28');
   });
 
   test('about panel shows track count', async ({ page }) => {
@@ -1345,7 +1345,7 @@ test.describe('Waveform Pre-computation', () => {
   test('health endpoint includes waveform precompute status', async ({ request }) => {
     const resp = await request.get('/api/health');
     const data = await resp.json();
-    expect(data.version).toBe('v27');
+    expect(data.version).toBe('v28');
     expect(data.waveformPrecompute).toBeDefined();
     expect(data.waveformPrecompute.total).toBeGreaterThan(0);
     expect(data.waveformPrecompute.progress).toBeGreaterThanOrEqual(0);
@@ -1444,5 +1444,147 @@ test.describe('Beat-Sync Visuals', () => {
     await page.locator('#parallelWfBtn').click();
     await expect(page.locator('#pwfCanvas1')).toBeAttached();
     await expect(page.locator('#pwfCanvas2')).toBeAttached();
+  });
+});
+
+// ============================================================
+// 71. RECORDING PANEL
+// ============================================================
+
+test.describe('Recording Panel', () => {
+  test('recording panel exists but hidden by default', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#recordingPanel')).toBeAttached();
+    await expect(page.locator('#recordingPanel')).not.toBeVisible();
+  });
+
+  test('REC MIX shows recording panel and timer', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#recMixBtn').click();
+    await expect(page.locator('#recordingPanel')).toBeVisible();
+    await expect(page.locator('#recTimer')).toBeVisible();
+    // Stop recording
+    await page.locator('#recMixBtn').click();
+  });
+
+  test('recording format selector exists', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#recFormatSelect')).toBeAttached();
+  });
+
+  test('recording waveform canvas exists', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#recWaveformCanvas')).toBeAttached();
+  });
+});
+
+// ============================================================
+// 72. TRACK HISTORY SIDEBAR
+// ============================================================
+
+test.describe('Track History Sidebar', () => {
+  test('history button exists in topbar', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#historyBtn')).toBeVisible();
+    await expect(page.locator('#historyBtn')).toContainText('HISTORY');
+  });
+
+  test('history sidebar toggles on button click', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#historySidebar')).not.toBeVisible();
+    await page.locator('#historyBtn').click();
+    await expect(page.locator('#historySidebar')).toBeVisible();
+    await page.locator('#historyBtn').click();
+    await expect(page.locator('#historySidebar')).not.toBeVisible();
+  });
+
+  test('history sidebar has close button', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#historyBtn').click();
+    const closeBtn = page.locator('.history-close-btn');
+    await expect(closeBtn).toBeVisible();
+    await closeBtn.click();
+    await expect(page.locator('#historySidebar')).not.toBeVisible();
+  });
+});
+
+// ============================================================
+// 73. CUE POINT LABELS
+// ============================================================
+
+test.describe('Cue Point Labels', () => {
+  test('hotcue labels exist for both decks', async ({ page }) => {
+    await page.goto('/');
+    expect(await page.locator('.hotcue-label[data-deck="0"]').count()).toBe(4);
+    expect(await page.locator('.hotcue-label[data-deck="1"]').count()).toBe(4);
+  });
+
+  test('hotcue-with-label wrappers exist', async ({ page }) => {
+    await page.goto('/');
+    expect(await page.locator('.hotcue-with-label').count()).toBe(8);
+  });
+});
+
+// ============================================================
+// 74. PITCH RANGE SELECTOR
+// ============================================================
+
+test.describe('Pitch Range Selector', () => {
+  test('pitch range buttons exist for both decks', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#pitchRange0')).toBeVisible();
+    await expect(page.locator('#pitchRange1')).toBeVisible();
+  });
+
+  test('clicking pitch range cycles through options', async ({ page }) => {
+    await page.goto('/');
+    const btn = page.locator('#pitchRange0');
+    await expect(btn).toContainText('±8%');
+    await btn.click();
+    await expect(btn).toContainText('±10%');
+    await btn.click();
+    await expect(btn).toContainText('±16%');
+    await btn.click();
+    await expect(btn).toContainText('±100%');
+    await btn.click();
+    await expect(btn).toContainText('±6%');
+  });
+
+  test('pitch range updates tempo slider limits', async ({ page }) => {
+    await page.goto('/');
+    // Default is ±8
+    const slider = page.locator('#tempo1');
+    expect(await slider.getAttribute('min')).toBe('-8');
+    expect(await slider.getAttribute('max')).toBe('8');
+    // Cycle to ±10
+    await page.locator('#pitchRange0').click();
+    expect(await slider.getAttribute('min')).toBe('-10');
+    expect(await slider.getAttribute('max')).toBe('10');
+  });
+});
+
+// ============================================================
+// 75. KEY SHIFT BUTTONS
+// ============================================================
+
+test.describe('Key Shift', () => {
+  test('key shift buttons exist for both decks', async ({ page }) => {
+    await page.goto('/');
+    const keyShiftBtns = page.locator('.key-shift-btn');
+    expect(await keyShiftBtns.count()).toBe(4); // 2 per deck
+  });
+
+  test('key shift display shows 0st by default', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#keyShift0')).toContainText('0st');
+    await expect(page.locator('#keyShift1')).toContainText('0st');
+  });
+
+  test('key shift buttons are clickable', async ({ page }) => {
+    await page.goto('/');
+    // Click KEY+ for deck 1
+    await page.locator('.key-shift-btn').first().click();
+    // Should not crash
+    await expect(page.locator('.logo')).toBeVisible();
   });
 });

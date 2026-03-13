@@ -209,7 +209,7 @@ app.get('/api/health', (req, res) => {
   } catch {}
   res.json({
     status: 'ok',
-    version: 'v27',
+    version: 'v28',
     tracks: trackCount,
     uptime: Math.floor((Date.now() - startTime) / 1000),
     cacheDir: CACHE_DIR,
