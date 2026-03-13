@@ -13,6 +13,16 @@
 <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
+<!-- Loading/Splash Screen -->
+<div class="splash-screen" id="splashScreen">
+  <div class="splash-content">
+    <div class="splash-logo">PIONEER</div>
+    <div class="splash-model">XDJ-RR</div>
+    <div class="splash-loader"><div class="splash-loader-bar"></div></div>
+  </div>
+</div>
+<!-- Reactive Background Canvas -->
+<canvas id="bgVisualization" class="bg-visualization"></canvas>
 <!-- Mobile Toolbar (visible only on mobile) -->
 <div class="mobile-toolbar" id="mobileToolbar">
   <div class="mobile-deck-switcher">
@@ -50,6 +60,7 @@
     <button class="midi-learn-btn" id="midiLearnBtn" onclick="toggleMIDILearn()" data-tooltip="MIDI Learn mode">🎹 MIDI LEARN</button>
     <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" data-tooltip="Toggle fullscreen (F11)">⛶</button>
     <button class="autodj-btn" id="autoDJBtn" onclick="toggleAutoDJ()" data-tooltip="Auto-DJ mode">🤖 AUTO-DJ</button>
+    <button class="master-tempo-btn" id="masterTempoBtn" onclick="toggleMasterTempo()" data-tooltip="Lock tempo across both decks">🔒 M.TEMPO</button>
     <button class="info-btn" id="infoBtn" onclick="toggleAboutPanel()" data-tooltip="About XDJ-RR">ⓘ</button>
     <div class="theme-accent-selector" id="themeAccentSelector">
       <button class="accent-btn active" data-accent="classic" onclick="setAccentTheme('classic')" title="Classic (Blue/Orange)">🔵</button>
@@ -517,7 +528,7 @@
 <div class="about-overlay" id="aboutOverlay" onclick="if(event.target===this)toggleAboutPanel()">
   <div class="about-box">
     <h2>ⓘ About XDJ-RR</h2>
-    <div class="about-version">v25</div>
+    <div class="about-version">v27</div>
     <div class="about-content">
       <div class="stat-row"><span class="stat-label">Tracks in Library</span><span class="stat-value" id="aboutTrackCount">—</span></div>
       <div class="stat-row"><span class="stat-label">Waveform Cache</span><span class="stat-value" id="aboutWaveformStatus">—</span></div>

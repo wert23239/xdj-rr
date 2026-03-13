@@ -3180,6 +3180,49 @@ drawParallelWaveforms = function() {
   }
 };
 
+// ==================== MASTER TEMPO LOCK ====================
+let masterTempoLocked = false;
+
+function toggleMasterTempo() {
+  masterTempoLocked = !masterTempoLocked;
+  document.getElementById('masterTempoBtn').classList.toggle('active', masterTempoLocked);
+  if (masterTempoLocked) {
+    // Sync deck 2 to deck 1's BPM (or vice versa, whichever is playing)
+    const refDeck = decks[0].playing ? 0 : decks[1].playing ? 1 : 0;
+    const otherDeck = 1 - refDeck;
+    if (decks[refDeck].bpm && decks[otherDeck].bpm) {
+      decks[otherDeck].sync(decks[refDeck]);
+    }
+  }
+}
+
+// Hook into tempo slider to enforce master tempo lock
+const _origTempoInput1 = document.getElementById('tempo1').oninput;
+const _origTempoInput2 = document.getElementById('tempo2').oninput;
+document.getElementById('tempo1').oninput = function(e) {
+  _origTempoInput1.call(this, e);
+  if (masterTempoLocked && decks[0].bpm && decks[1].bpm) {
+    // Apply same effective BPM to deck 2
+    const effectiveBPM = decks[0].bpm * decks[0].playbackRate;
+    const ratio = effectiveBPM / decks[1].bpm;
+    const tempoPercent = (ratio - 1) * 100;
+    decks[1].setTempo(tempoPercent);
+    document.getElementById('tempo2').value = Math.max(-8, Math.min(8, tempoPercent));
+    document.getElementById('tempoVal2').textContent = tempoPercent.toFixed(1) + '%';
+  }
+};
+document.getElementById('tempo2').oninput = function(e) {
+  _origTempoInput2.call(this, e);
+  if (masterTempoLocked && decks[0].bpm && decks[1].bpm) {
+    const effectiveBPM = decks[1].bpm * decks[1].playbackRate;
+    const ratio = effectiveBPM / decks[0].bpm;
+    const tempoPercent = (ratio - 1) * 100;
+    decks[0].setTempo(tempoPercent);
+    document.getElementById('tempo1').value = Math.max(-8, Math.min(8, tempoPercent));
+    document.getElementById('tempoVal1').textContent = tempoPercent.toFixed(1) + '%';
+  }
+};
+
 // ==================== ANIMATION LOOP ====================
 function animate() {
   requestAnimationFrame(animate);
@@ -3231,3 +3274,114 @@ setInterval(() => {
 
 // Load initial data
 loadSessions();
+
+// ==================== SPLASH SCREEN ====================
+(function initSplash() {
+  const splash = document.getElementById('splashScreen');
+  if (!splash) return;
+  // Dismiss quickly so it doesn't block interaction
+  setTimeout(() => { splash.style.pointerEvents = 'none'; splash.classList.add('hidden'); }, 1200);
+  setTimeout(() => { if (splash.parentNode) splash.parentNode.removeChild(splash); }, 1900);
+})();
+
+// ==================== REACTIVE BACKGROUND VISUALIZATION ====================
+(function initBgVisualization() {
+  const canvas = document.getElementById('bgVisualization');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+
+  // Use the existing masterAnalyser (connected to limiterNode)
+  const analyser = masterAnalyser;
+  const bufLen = analyser.frequencyBinCount;
+  const freqData = new Uint8Array(bufLen);
+
+  function drawBg() {
+    requestAnimationFrame(drawBg);
+    analyser.getByteFrequencyData(freqData);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Get bass (0-10), mids (10-30), highs (30-64)
+    let bass = 0, mids = 0, highs = 0;
+    for (let i = 0; i < 10; i++) bass += freqData[i];
+    for (let i = 10; i < 30; i++) mids += freqData[i];
+    for (let i = 30; i < bufLen; i++) highs += freqData[i];
+    bass = bass / 2550; // 0-1
+    mids = mids / 5100;
+    highs = highs / ((bufLen - 30) * 255);
+
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+
+    // Subtle pulsing circles driven by bass
+    const baseRadius = Math.min(canvas.width, canvas.height) * 0.15;
+    for (let ring = 3; ring >= 0; ring--) {
+      const r = baseRadius + ring * 60 + bass * 80;
+      const alpha = 0.03 + bass * 0.04 - ring * 0.008;
+      if (alpha <= 0) continue;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      // Mix deck colors based on which is louder
+      const d1Playing = decks[0] && decks[0].playing;
+      const d2Playing = decks[1] && decks[1].playing;
+      if (d1Playing && d2Playing) {
+        ctx.strokeStyle = `rgba(128, 170, 128, ${alpha})`;
+      } else if (d2Playing) {
+        ctx.strokeStyle = `rgba(255, 136, 0, ${alpha})`;
+      } else {
+        ctx.strokeStyle = `rgba(0, 170, 255, ${alpha})`;
+      }
+      ctx.lineWidth = 1.5 + bass * 2;
+      ctx.stroke();
+    }
+
+    // Subtle mid-frequency wave at bottom
+    if (mids > 0.01) {
+      ctx.beginPath();
+      const waveY = canvas.height * 0.85;
+      for (let x = 0; x < canvas.width; x += 4) {
+        const nx = x / canvas.width;
+        const y = waveY + Math.sin(nx * 8 + performance.now() * 0.002) * mids * 30;
+        x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = `rgba(100, 100, 180, ${mids * 0.15})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  }
+  drawBg();
+})();
+
+// ==================== SOUND WAVE BARS ON TRACK NAMES ====================
+function updateSoundWaveBars() {
+  for (let i = 0; i < 2; i++) {
+    const titleEl = document.getElementById('wfTitle' + (i + 1));
+    if (!titleEl) continue;
+    const existing = titleEl.parentElement.querySelector('.sound-wave-bars');
+    if (decks[i] && decks[i].playing && decks[i].buffer) {
+      if (!existing) {
+        const bars = document.createElement('span');
+        bars.className = 'sound-wave-bars';
+        bars.innerHTML = '<span class="sw-bar"></span><span class="sw-bar"></span><span class="sw-bar"></span><span class="sw-bar"></span>';
+        bars.style.color = i === 0 ? 'var(--deck1)' : 'var(--deck2)';
+        titleEl.parentElement.appendChild(bars);
+      }
+    } else {
+      if (existing) existing.remove();
+    }
+  }
+}
+setInterval(updateSoundWaveBars, 500);
+
+// ==================== WAVEFORM GLOW ON PLAYING DECKS ====================
+function updateWaveformGlow() {
+  for (let i = 0; i < 2; i++) {
+    const wfContainer = document.getElementById('wf' + (i + 1));
+    if (!wfContainer) continue;
+    const playing = decks[i] && decks[i].playing && decks[i].buffer;
+    wfContainer.classList.toggle('glow-d' + (i + 1), !!playing);
+  }
+}
+setInterval(updateWaveformGlow, 300);

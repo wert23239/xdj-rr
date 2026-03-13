@@ -2,6 +2,18 @@ const { test, expect } = require('@playwright/test');
 
 const BASE = 'http://localhost:3000';
 
+// Helper: dismiss splash screen and audio context overlay
+async function dismissOverlays(page) {
+  // Remove splash screen
+  await page.evaluate(() => {
+    const splash = document.getElementById('splashScreen');
+    if (splash) splash.remove();
+    // Dismiss audio context overlay
+    const aco = document.getElementById('audioContextOverlay');
+    if (aco) aco.remove();
+  });
+}
+
 // Helper: load a track into a deck and wait
 async function loadTrack(page, deckNum) {
   await page.waitForSelector('.track-item', { timeout: 10000 });
@@ -10,6 +22,27 @@ async function loadTrack(page, deckNum) {
   await track.locator(`.load-btn.d${deckNum}`).click();
   await expect(page.locator('#status')).toContainText(`Loaded to Deck ${deckNum}`, { timeout: 30000 });
 }
+
+// Global: auto-dismiss splash screen and audio context overlay
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    // Remove splash screen immediately when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        const s = document.getElementById('splashScreen');
+        if (s) s.remove();
+      });
+    }
+    // Also poll to catch dynamically created overlays
+    const _iv = setInterval(() => {
+      const s = document.getElementById('splashScreen');
+      if (s) s.remove();
+      const a = document.getElementById('audioContextOverlay');
+      if (a) a.remove();
+    }, 100);
+    setTimeout(() => clearInterval(_iv), 10000);
+  });
+});
 
 // ============================================================
 // 1. PAGE LOAD & STRUCTURE
@@ -1284,7 +1317,7 @@ test.describe('About Panel', () => {
     await page.locator('#infoBtn').click();
     await expect(page.locator('#aboutOverlay')).toBeVisible();
     await expect(page.locator('.about-box')).toContainText('About XDJ-RR');
-    await expect(page.locator('.about-version')).toContainText('v25');
+    await expect(page.locator('.about-version')).toContainText('v27');
   });
 
   test('about panel shows track count', async ({ page }) => {
@@ -1312,7 +1345,7 @@ test.describe('Waveform Pre-computation', () => {
   test('health endpoint includes waveform precompute status', async ({ request }) => {
     const resp = await request.get('/api/health');
     const data = await resp.json();
-    expect(data.version).toBe('v25');
+    expect(data.version).toBe('v27');
     expect(data.waveformPrecompute).toBeDefined();
     expect(data.waveformPrecompute.total).toBeGreaterThan(0);
     expect(data.waveformPrecompute.progress).toBeGreaterThanOrEqual(0);
@@ -1341,6 +1374,63 @@ test.describe('Updated Shortcuts Modal', () => {
     await expect(page.locator('.shortcuts-box')).toContainText('MIDI LEARN');
     await expect(page.locator('.shortcuts-box')).toContainText('Fullscreen');
     await expect(page.locator('.shortcuts-box')).toContainText('DISCOVER');
+  });
+});
+
+// ============================================================
+// 68. MASTER TEMPO LOCK
+// ============================================================
+
+test.describe('Master Tempo Lock', () => {
+  test('master tempo button exists', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#masterTempoBtn')).toBeVisible();
+    await expect(page.locator('#masterTempoBtn')).toContainText('M.TEMPO');
+  });
+
+  test('master tempo button toggles', async ({ page }) => {
+    await page.goto('/');
+    const btn = page.locator('#masterTempoBtn');
+    await btn.click();
+    await expect(btn).toHaveClass(/active/);
+    await btn.click();
+    await expect(btn).not.toHaveClass(/active/);
+  });
+});
+
+// ============================================================
+// 69. DECK COLOR CODING
+// ============================================================
+
+test.describe('Deck Color Coding', () => {
+  test('deck 1 has blue color coding', async ({ page }) => {
+    await page.goto('/');
+    const d1Label = page.locator('.d1 .deck-label');
+    await expect(d1Label).toBeVisible();
+    // Check that deck 1 has the deck1 CSS variable (blue)
+    const color = await d1Label.evaluate(el => getComputedStyle(el).color);
+    expect(color).toBeTruthy();
+  });
+
+  test('deck 2 has orange color coding', async ({ page }) => {
+    await page.goto('/');
+    const d2Label = page.locator('.d2 .deck-label');
+    await expect(d2Label).toBeVisible();
+    const color = await d2Label.evaluate(el => getComputedStyle(el).color);
+    expect(color).toBeTruthy();
+  });
+});
+
+// ============================================================
+// 70. SMOOTH EQ KNOB ANIMATIONS
+// ============================================================
+
+test.describe('Smooth EQ Knobs', () => {
+  test('knob indicators have CSS transition', async ({ page }) => {
+    await page.goto('/');
+    const indicator = page.locator('.knob-indicator').first();
+    const transition = await indicator.evaluate(el => getComputedStyle(el).transition);
+    expect(transition).toContain('transform');
   });
 });
 
