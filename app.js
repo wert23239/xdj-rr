@@ -3223,6 +3223,407 @@ document.getElementById('tempo2').oninput = function(e) {
   }
 };
 
+// ==================== ENHANCED BPM DETECTION (Autocorrelation) ====================
+/**
+ * Improved BPM detection using multi-band onset detection and autocorrelation.
+ * Replaces the basic onset-energy method with a more accurate approach.
+ */
+Deck.prototype.detectBPM = function() {
+  if (!this.buffer) return;
+  const data = this.buffer.getChannelData(0);
+  const sampleRate = this.buffer.sampleRate;
+  const len = Math.min(data.length, sampleRate * 30);
+
+  // 1. Compute onset function using spectral flux
+  const frameSize = 1024;
+  const hopSize = 512;
+  const numFrames = Math.floor((len - frameSize) / hopSize);
+  const onsets = new Float32Array(numFrames);
+  let prevMagnitudes = null;
+
+  for (let f = 0; f < numFrames; f++) {
+    const offset = f * hopSize;
+    // Compute magnitude spectrum approximation using zero-crossings + energy
+    let energy = 0;
+    let zeroCrossings = 0;
+    for (let i = offset; i < offset + frameSize && i < len; i++) {
+      energy += data[i] * data[i];
+      if (i > offset && ((data[i] >= 0) !== (data[i-1] >= 0))) zeroCrossings++;
+    }
+    energy = Math.sqrt(energy / frameSize);
+    const spectralCentroid = zeroCrossings / frameSize;
+
+    // Band-weighted energy (emphasize bass and transients)
+    const bassWeight = Math.max(0, 1 - spectralCentroid * 10);
+    const weightedEnergy = energy * (1 + bassWeight * 2);
+
+    if (f > 0) {
+      onsets[f] = Math.max(0, weightedEnergy - (prevMagnitudes || 0));
+    }
+    prevMagnitudes = weightedEnergy;
+  }
+
+  // 2. Autocorrelation of onset function
+  const minBPM = 60, maxBPM = 180;
+  const framesPerSec = sampleRate / hopSize;
+  const minLag = Math.floor(framesPerSec * 60 / maxBPM);
+  const maxLag = Math.floor(framesPerSec * 60 / minBPM);
+  const acLen = Math.min(numFrames, 4000);
+
+  let bestLag = minLag, bestScore = -Infinity;
+
+  for (let lag = minLag; lag <= Math.min(maxLag, acLen / 2); lag++) {
+    let corr = 0;
+    let count = 0;
+    for (let i = 0; i < acLen - lag; i++) {
+      corr += onsets[i] * onsets[i + lag];
+      count++;
+    }
+    if (count === 0) continue;
+    corr /= count;
+
+    // Boost harmonics: check double and triple lag
+    let score = corr;
+    const doubleLag = lag * 2;
+    if (doubleLag < acLen / 2) {
+      let corr2 = 0, c2 = 0;
+      for (let i = 0; i < acLen - doubleLag; i++) { corr2 += onsets[i] * onsets[i + doubleLag]; c2++; }
+      if (c2 > 0) score += (corr2 / c2) * 0.6;
+    }
+    const tripleLag = lag * 3;
+    if (tripleLag < acLen / 2) {
+      let corr3 = 0, c3 = 0;
+      for (let i = 0; i < acLen - tripleLag; i++) { corr3 += onsets[i] * onsets[i + tripleLag]; c3++; }
+      if (c3 > 0) score += (corr3 / c3) * 0.3;
+    }
+
+    // Prefer tempos near common DJ ranges (120-128)
+    const bpmAtLag = (framesPerSec * 60) / lag;
+    if (bpmAtLag >= 118 && bpmAtLag <= 132) score *= 1.05;
+
+    if (score > bestScore) { bestScore = score; bestLag = lag; }
+  }
+
+  let bpm = (framesPerSec * 60) / bestLag;
+
+  // Normalize to standard range
+  while (bpm > 180) bpm /= 2;
+  while (bpm < 70) bpm *= 2;
+
+  this.bpm = Math.round(bpm * 10) / 10;
+};
+
+// ==================== TRANSITION FX PRESETS ====================
+let transitionFXRunning = null;
+
+function applyTransitionFX(type) {
+  // Cancel any running transition FX
+  if (transitionFXRunning) {
+    clearInterval(transitionFXRunning);
+    transitionFXRunning = null;
+    document.querySelectorAll('.transition-fx-btn').forEach(b => b.classList.remove('running'));
+    return;
+  }
+
+  const cf = document.getElementById('crossfader');
+  const currentVal = parseFloat(cf.value);
+  const fromDeck = currentVal < 0.5 ? 0 : 1;
+  const toDeck = 1 - fromDeck;
+  const targetVal = toDeck === 1 ? 1 : 0;
+
+  if (type === 'hardCut') {
+    // Instant swap
+    cf.value = targetVal;
+    cf.dispatchEvent(new Event('input'));
+    return;
+  }
+
+  const btn = event.target;
+  btn.classList.add('running');
+
+  if (type === 'echoOut') {
+    // Echo + fade out over 4 seconds
+    const echoBtn = document.querySelector(`.fx-btn[data-fx="echo"][data-ch="${fromDeck}"]`);
+    if (echoBtn && !echoBtn.classList.contains('active')) echoBtn.click();
+    // Increase echo feedback
+    decks[fromDeck].echoFeedback.gain.value = 0.7;
+    decks[fromDeck].echoWet.gain.value = 0.8;
+
+    const duration = 4000, steps = 80, stepMs = duration / steps;
+    let step = 0;
+    transitionFXRunning = setInterval(() => {
+      step++;
+      const progress = step / steps;
+      cf.value = currentVal + (targetVal - currentVal) * progress;
+      cf.dispatchEvent(new Event('input'));
+      decks[fromDeck].gainNode.gain.value = 0.85 * (1 - progress);
+      if (step >= steps) {
+        clearInterval(transitionFXRunning); transitionFXRunning = null; btn.classList.remove('running');
+        if (echoBtn && echoBtn.classList.contains('active')) echoBtn.click();
+        decks[fromDeck].gainNode.gain.value = 0.85;
+      }
+    }, stepMs);
+  } else if (type === 'filterSweep') {
+    // Low-pass filter sweep on outgoing deck over 4 seconds
+    const duration = 4000, steps = 80, stepMs = duration / steps;
+    let step = 0;
+    transitionFXRunning = setInterval(() => {
+      step++;
+      const progress = step / steps;
+      cf.value = currentVal + (targetVal - currentVal) * progress;
+      cf.dispatchEvent(new Event('input'));
+      // Sweep from 20000 Hz down to 200 Hz
+      const freq = 20000 * Math.pow(200 / 20000, progress);
+      decks[fromDeck].colorFilter.type = 'lowpass';
+      decks[fromDeck].colorFilter.frequency.value = freq;
+      decks[fromDeck].colorFilter.Q.value = 2 + progress * 6;
+      if (step >= steps) {
+        clearInterval(transitionFXRunning); transitionFXRunning = null; btn.classList.remove('running');
+        // Reset filter
+        decks[fromDeck].colorFilter.type = 'allpass';
+        decks[fromDeck].colorFilter.Q.value = 0;
+      }
+    }, stepMs);
+  } else if (type === 'reverbWash') {
+    // Reverb + crossfade over 6 seconds
+    const reverbBtn = document.querySelector(`.fx-btn[data-fx="reverb"][data-ch="${fromDeck}"]`);
+    if (reverbBtn && !reverbBtn.classList.contains('active')) reverbBtn.click();
+    decks[fromDeck].reverbWet.gain.value = 0.9;
+
+    const duration = 6000, steps = 120, stepMs = duration / steps;
+    let step = 0;
+    transitionFXRunning = setInterval(() => {
+      step++;
+      const progress = step / steps;
+      cf.value = currentVal + (targetVal - currentVal) * (progress * progress * (3 - 2 * progress));
+      cf.dispatchEvent(new Event('input'));
+      // Increase reverb wet as transition progresses
+      decks[fromDeck].reverbWet.gain.value = 0.5 + progress * 0.5;
+      decks[fromDeck].gainNode.gain.value = 0.85 * (1 - progress * 0.7);
+      if (step >= steps) {
+        clearInterval(transitionFXRunning); transitionFXRunning = null; btn.classList.remove('running');
+        if (reverbBtn && reverbBtn.classList.contains('active')) reverbBtn.click();
+        decks[fromDeck].gainNode.gain.value = 0.85;
+      }
+    }, stepMs);
+  }
+}
+
+// ==================== VINYL MODE ====================
+const vinylModeEnabled = [false, false];
+let vinylScratchBuffer = null;
+
+// Generate scratch noise buffer
+(function generateScratchBuffer() {
+  const sr = actx.sampleRate;
+  const len = sr * 0.5;
+  const buf = actx.createBuffer(1, len, sr);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) {
+    const t = i / sr;
+    const noise = Math.random() * 2 - 1;
+    const tone = Math.sin(2 * Math.PI * 300 * t + Math.sin(2 * Math.PI * 50 * t) * 3);
+    const crackle = Math.random() > 0.98 ? (Math.random() * 2 - 1) * 0.5 : 0;
+    d[i] = (noise * 0.15 + tone * 0.3 + crackle) * 0.4;
+  }
+  vinylScratchBuffer = buf;
+})();
+
+function toggleVinylMode(deckId) {
+  vinylModeEnabled[deckId] = !vinylModeEnabled[deckId];
+  document.getElementById('vinylMode' + (deckId + 1)).classList.toggle('active', vinylModeEnabled[deckId]);
+  // Also enable vinyl brake when vinyl mode is on
+  if (vinylModeEnabled[deckId] && !vinylBrakeEnabled[deckId]) {
+    toggleVinylBrake(deckId);
+  }
+}
+
+// Vinyl scratch sound on jog wheel interaction
+let vinylScratchSources = [null, null];
+let vinylScratchGains = [null, null];
+
+// Initialize vinyl scratch gain nodes
+for (let i = 0; i < 2; i++) {
+  vinylScratchGains[i] = actx.createGain();
+  vinylScratchGains[i].gain.value = 0;
+  vinylScratchGains[i].connect(masterGain);
+}
+
+// Patch jog wheel interaction for vinyl scratch sounds
+const _origJogStartHandler = null; // We'll hook into jogDragging state changes
+
+// Override jogMove to add scratch sound
+const _origJogMove = jogMove;
+jogMove = function(y) {
+  _origJogMove(y);
+  if (jogDragging !== null && vinylModeEnabled[jogDragging] && vinylScratchBuffer) {
+    const delta = Math.abs(y - jogLastY);
+    if (!vinylScratchSources[jogDragging]) {
+      const src = actx.createBufferSource();
+      src.buffer = vinylScratchBuffer;
+      src.loop = true;
+      src.connect(vinylScratchGains[jogDragging]);
+      src.start();
+      vinylScratchSources[jogDragging] = src;
+    }
+    // Modulate scratch volume based on movement speed
+    const speed = Math.min(1, delta / 10);
+    vinylScratchGains[jogDragging].gain.setTargetAtTime(speed * 0.3, actx.currentTime, 0.02);
+  }
+};
+
+// Override jogRelease to stop scratch sound
+const _origJogRelease = jogRelease;
+jogRelease = function() {
+  if (jogDragging !== null && vinylScratchSources[jogDragging]) {
+    vinylScratchGains[jogDragging].gain.setTargetAtTime(0, actx.currentTime, 0.05);
+    const src = vinylScratchSources[jogDragging];
+    setTimeout(() => { try { src.stop(); } catch(e) {} }, 100);
+    vinylScratchSources[jogDragging] = null;
+  }
+  _origJogRelease();
+};
+
+// ==================== ENHANCED SESSION PERSISTENCE ====================
+// Override saveDeckState with comprehensive state
+const _origSaveDeckState = saveDeckState;
+saveDeckState = function() {
+  try {
+    const state = {
+      version: 30,
+      decks: decks.map((d, i) => ({
+        trackUrl: d._lastUrl || null,
+        trackName: d.trackName,
+        offset: d.getCurrentTime(),
+        volume: document.getElementById('vol' + (i + 1)).value,
+        tempo: document.getElementById('tempo' + (i + 1)).value,
+        hotCues: [...d.hotCues],
+        hotCueLabels: [...hotCueLabels[i]],
+        cuePoint: d.cuePoint,
+        loopActive: d.loopActive,
+        loopStart: d.loopStart,
+        loopEnd: d.loopEnd,
+        loopBeats: d.loopBeats,
+        eqHi: d.eqHi ? d.eqHi.gain.value : 0,
+        eqMid: d.eqMid ? d.eqMid.gain.value : 0,
+        eqLo: d.eqLo ? d.eqLo.gain.value : 0,
+        bpm: d.bpm,
+        slipMode: d.slipMode,
+        quantize: d.quantize,
+        vinylBrake: vinylBrakeEnabled[i],
+        vinylMode: vinylModeEnabled[i],
+        keyShift: deckKeyShift[i],
+        pitchRangeIdx: deckPitchRangeIdx[i],
+        colorValue: d.colorValue,
+        trimGain: d.trimGain ? d.trimGain.gain.value : 1
+      })),
+      crossfader: document.getElementById('crossfader').value,
+      masterVol: document.getElementById('masterVol').value,
+      xfadeCurve: xfadeCurve,
+      theme: currentTheme,
+      accent: currentAccent,
+      samplerVolumes: samplerPadGains.map(g => g ? g.gain.value : 0.8),
+      samplerLoopModes: [...samplerLoopMode]
+    };
+    localStorage.setItem('xdj-deck-state', JSON.stringify(state));
+  } catch(e) {}
+};
+
+// Override restoreDeckState
+const _origRestoreDeckState = restoreDeckState;
+restoreDeckState = function() {
+  try {
+    const raw = localStorage.getItem('xdj-deck-state');
+    if (!raw) return;
+    const state = JSON.parse(raw);
+    if (!state.decks) return;
+
+    state.decks.forEach((ds, i) => {
+      if (ds.volume) { document.getElementById('vol' + (i + 1)).value = ds.volume; decks[i].gainNode.gain.value = parseFloat(ds.volume); }
+      if (ds.tempo) { document.getElementById('tempo' + (i + 1)).value = ds.tempo; decks[i].setTempo(parseFloat(ds.tempo)); document.getElementById('tempoVal' + (i + 1)).textContent = parseFloat(ds.tempo).toFixed(1) + '%'; }
+
+      // v30 enhanced state
+      if (state.version >= 30) {
+        if (ds.hotCues) decks[i].hotCues = ds.hotCues;
+        if (ds.hotCueLabels) hotCueLabels[i] = ds.hotCueLabels;
+        if (ds.cuePoint !== undefined) decks[i].cuePoint = ds.cuePoint;
+        if (ds.slipMode) { decks[i].slipMode = true; document.getElementById('slip' + (i+1)).classList.add('active'); }
+        if (ds.quantize) { decks[i].quantize = true; document.getElementById('quantize' + (i+1)).classList.add('active'); }
+        if (ds.vinylBrake && !vinylBrakeEnabled[i]) toggleVinylBrake(i);
+        if (ds.vinylMode && !vinylModeEnabled[i]) toggleVinylMode(i);
+        if (ds.keyShift !== undefined && ds.keyShift !== 0) {
+          deckKeyShift[i] = ds.keyShift;
+          document.getElementById('keyShift' + i).textContent = (ds.keyShift >= 0 ? '+' : '') + ds.keyShift + 'st';
+        }
+        if (ds.pitchRangeIdx !== undefined && ds.pitchRangeIdx !== 1) {
+          deckPitchRangeIdx[i] = ds.pitchRangeIdx;
+          applyPitchRange(i);
+        }
+        if (ds.eqHi !== undefined) decks[i].eqHi.gain.value = ds.eqHi;
+        if (ds.eqMid !== undefined) decks[i].eqMid.gain.value = ds.eqMid;
+        if (ds.eqLo !== undefined) decks[i].eqLo.gain.value = ds.eqLo;
+        if (ds.colorValue !== undefined) decks[i].setColorFilter(ds.colorValue);
+        if (ds.trimGain !== undefined) decks[i].trimGain.gain.value = ds.trimGain;
+
+        // Restore loaded track
+        if (ds.trackUrl && ds.trackName) {
+          loadToDeck(i, encodeURIComponent(ds.trackUrl.replace('/tracks/', ''))).then(() => {
+            if (ds.offset > 0) decks[i].seekTo(ds.offset);
+            if (ds.hotCues) { decks[i].hotCues = ds.hotCues; updateHotCueButtons(i); }
+            if (ds.loopActive) {
+              decks[i].loopActive = true;
+              decks[i].loopStart = ds.loopStart;
+              decks[i].loopEnd = ds.loopEnd;
+              decks[i].loopBeats = ds.loopBeats;
+            }
+          }).catch(() => {});
+        }
+      }
+    });
+
+    if (state.crossfader) { document.getElementById('crossfader').value = state.crossfader; updateCrossfader(); }
+    if (state.masterVol) { document.getElementById('masterVol').value = state.masterVol; masterGain.gain.value = parseFloat(state.masterVol); document.getElementById('masterVal').textContent = Math.round(parseFloat(state.masterVol) * 100) + '%'; }
+    if (state.xfadeCurve) setXfadeCurve(state.xfadeCurve);
+
+    // Restore sampler state
+    if (state.samplerVolumes) {
+      state.samplerVolumes.forEach((v, i) => {
+        if (samplerPadGains[i]) samplerPadGains[i].gain.value = v;
+        const slider = document.getElementById('spadVol' + i);
+        if (slider) slider.value = v;
+      });
+    }
+    if (state.samplerLoopModes) {
+      state.samplerLoopModes.forEach((m, i) => {
+        if (m) toggleSamplerLoop(i);
+      });
+    }
+  } catch(e) { console.error('Restore state error:', e); }
+};
+
+// Re-run restore with enhanced version
+restoreDeckState();
+
+// ==================== SAMPLER DRAG-AND-DROP ====================
+// Allow dropping tracks onto sampler pads
+for (let i = 0; i < 8; i++) {
+  const wrapper = document.getElementById('spadWrap' + i);
+  if (!wrapper) continue;
+  const padIdx = i;
+  wrapper.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; wrapper.style.outline = '2px dashed #0af'; });
+  wrapper.addEventListener('dragleave', () => { wrapper.style.outline = ''; });
+  wrapper.addEventListener('drop', (e) => {
+    e.preventDefault();
+    wrapper.style.outline = '';
+    const trackName = e.dataTransfer.getData('text/plain');
+    if (trackName) {
+      const decoded = decodeURIComponent(trackName);
+      const cleanName = decoded.replace(/\.[^.]+$/, '').replace(/\s*\[\d{5,}\]\s*/g, ' ').trim();
+      loadSampleFromURL(padIdx, '/tracks/' + trackName, cleanName);
+    }
+  });
+}
+
 // ==================== ANIMATION LOOP ====================
 function animate() {
   requestAnimationFrame(animate);

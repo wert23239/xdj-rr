@@ -515,9 +515,9 @@ test.describe('Tracklist Panel', () => {
 // ============================================================
 
 test.describe('Sampler', () => {
-  test('4 sampler pads exist', async ({ page }) => {
+  test('8 sampler pads exist', async ({ page }) => {
     await page.goto('/');
-    expect(await page.locator('.sampler-pad').count()).toBe(4);
+    expect(await page.locator('.sampler-pad').count()).toBe(8);
   });
 
   test('sampler pads have correct labels', async ({ page }) => {
@@ -526,6 +526,10 @@ test.describe('Sampler', () => {
     await expect(page.locator('#spad1')).toContainText('SIREN');
     await expect(page.locator('#spad2')).toContainText('SCRATCH');
     await expect(page.locator('#spad3')).toContainText('CROWD');
+    await expect(page.locator('#spad4')).toContainText('CLAP');
+    await expect(page.locator('#spad5')).toContainText('LASER');
+    await expect(page.locator('#spad6')).toContainText('KICK');
+    await expect(page.locator('#spad7')).toContainText('HI-HAT');
   });
 
   test('sampler pad is clickable without error', async ({ page }) => {
@@ -534,6 +538,27 @@ test.describe('Sampler', () => {
     await page.locator('#spad0').click();
     // Page should still be functional
     await expect(page.locator('.logo')).toBeVisible();
+  });
+
+  test('sampler pads have volume controls', async ({ page }) => {
+    await page.goto('/');
+    expect(await page.locator('.spad-vol').count()).toBe(8);
+  });
+
+  test('sampler pads have loop toggle buttons', async ({ page }) => {
+    await page.goto('/');
+    expect(await page.locator('.spad-loop-btn').count()).toBe(8);
+  });
+
+  test('sampler loop toggle works', async ({ page }) => {
+    await page.goto('/');
+    const btn = page.locator('#spadLoop0');
+    await expect(btn).toContainText('1×');
+    await btn.click();
+    await expect(btn).toContainText('∞');
+    await expect(btn).toHaveClass(/active/);
+    await btn.click();
+    await expect(btn).toContainText('1×');
   });
 });
 
@@ -1317,7 +1342,7 @@ test.describe('About Panel', () => {
     await page.locator('#infoBtn').click();
     await expect(page.locator('#aboutOverlay')).toBeVisible();
     await expect(page.locator('.about-box')).toContainText('About XDJ-RR');
-    await expect(page.locator('.about-version')).toContainText('v29');
+    await expect(page.locator('.about-version')).toContainText('v30');
   });
 
   test('about panel shows track count', async ({ page }) => {
@@ -1345,7 +1370,7 @@ test.describe('Waveform Pre-computation', () => {
   test('health endpoint includes waveform precompute status', async ({ request }) => {
     const resp = await request.get('/api/health');
     const data = await resp.json();
-    expect(data.version).toBe('v29');
+    expect(data.version).toBe('v30');
     expect(data.waveformPrecompute).toBeDefined();
     expect(data.waveformPrecompute.total).toBeGreaterThanOrEqual(0);
     expect(data.waveformPrecompute.progress).toBeGreaterThanOrEqual(0);
@@ -1586,5 +1611,52 @@ test.describe('Key Shift', () => {
     await page.locator('.key-shift-btn').first().click();
     // Should not crash
     await expect(page.locator('.logo')).toBeVisible();
+  });
+});
+
+// ============================================================
+// 76. TRANSITION FX PRESETS (v30)
+// ============================================================
+
+test.describe('Transition FX Presets', () => {
+  test('transition FX section exists with 4 buttons', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('.transition-fx-section')).toBeVisible();
+    expect(await page.locator('.transition-fx-btn').count()).toBe(4);
+  });
+
+  test('transition FX buttons have correct labels', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#txfxEcho')).toContainText('ECHO OUT');
+    await expect(page.locator('#txfxFilter')).toContainText('FILTER SWEEP');
+    await expect(page.locator('#txfxReverb')).toContainText('REVERB WASH');
+    await expect(page.locator('#txfxCut')).toContainText('HARD CUT');
+  });
+
+  test('hard cut transition FX is clickable', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#txfxCut').click();
+    await expect(page.locator('.logo')).toBeVisible();
+  });
+});
+
+// ============================================================
+// 77. VINYL MODE (v30)
+// ============================================================
+
+test.describe('Vinyl Mode', () => {
+  test('vinyl mode buttons exist for both decks', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#vinylMode1')).toBeVisible();
+    await expect(page.locator('#vinylMode2')).toBeVisible();
+  });
+
+  test('vinyl mode toggles', async ({ page }) => {
+    await page.goto('/');
+    const btn = page.locator('#vinylMode1');
+    await btn.click();
+    await expect(btn).toHaveClass(/active/);
+    await btn.click();
+    await expect(btn).not.toHaveClass(/active/);
   });
 });

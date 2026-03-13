@@ -222,6 +222,7 @@
           <button class="slip-btn" id="slip1" onclick="toggleSlip(0)">SLIP</button>
           <button class="quantize-btn" id="quantize1" onclick="toggleQuantize(0)">Q</button>
           <button class="log-btn" id="logBtn1" onclick="logTrack(0)" disabled>📝 LOG</button>
+          <button class="vinyl-mode-btn" id="vinylMode1" onclick="toggleVinylMode(0)" data-tooltip="Vinyl mode — slowdown on stop, scratch sounds">🎵 VINYL</button>
         </div>
         <div class="tempo-section">
           <span class="tempo-range-label" id="tempoMin1" style="font-size:9px;color:#555">−8</span>
@@ -335,13 +336,27 @@
           </div>
         </div>
         <div class="section-divider"></div>
+        <div class="transition-fx-section">
+          <label>Transition FX</label>
+          <div class="transition-fx-btns">
+            <button class="transition-fx-btn" id="txfxEcho" onclick="applyTransitionFX('echoOut')" title="Echo + Fade out">ECHO OUT</button>
+            <button class="transition-fx-btn" id="txfxFilter" onclick="applyTransitionFX('filterSweep')" title="Low-pass filter sweep">FILTER SWEEP</button>
+            <button class="transition-fx-btn" id="txfxReverb" onclick="applyTransitionFX('reverbWash')" title="Reverb + Crossfade">REVERB WASH</button>
+            <button class="transition-fx-btn" id="txfxCut" onclick="applyTransitionFX('hardCut')" title="Instant swap">HARD CUT</button>
+          </div>
+        </div>
+        <div class="section-divider"></div>
         <div class="sampler">
           <div class="sampler-label">Sampler</div>
           <div class="sampler-pads">
-            <button class="sampler-pad s-airhorn" id="spad0" onclick="playSample(0)">AIR<br>HORN</button>
-            <button class="sampler-pad s-siren" id="spad1" onclick="playSample(1)">SIREN</button>
-            <button class="sampler-pad s-scratch" id="spad2" onclick="playSample(2)">SCRATCH</button>
-            <button class="sampler-pad s-crowd" id="spad3" onclick="playSample(3)">CROWD</button>
+            <div class="sampler-pad-wrapper" id="spadWrap0"><button class="sampler-pad s-airhorn" id="spad0" onclick="playSample(0)">AIR<br>HORN</button><div class="spad-controls"><input type="range" class="spad-vol" id="spadVol0" min="0" max="1" step="0.05" value="0.8" oninput="setSamplerPadVolume(0,this.value)" title="Volume"><button class="spad-loop-btn" id="spadLoop0" onclick="toggleSamplerLoop(0)" title="One-shot / Loop">1×</button></div></div>
+            <div class="sampler-pad-wrapper" id="spadWrap1"><button class="sampler-pad s-siren" id="spad1" onclick="playSample(1)">SIREN</button><div class="spad-controls"><input type="range" class="spad-vol" id="spadVol1" min="0" max="1" step="0.05" value="0.8" oninput="setSamplerPadVolume(1,this.value)" title="Volume"><button class="spad-loop-btn" id="spadLoop1" onclick="toggleSamplerLoop(1)" title="One-shot / Loop">1×</button></div></div>
+            <div class="sampler-pad-wrapper" id="spadWrap2"><button class="sampler-pad s-scratch" id="spad2" onclick="playSample(2)">SCRATCH</button><div class="spad-controls"><input type="range" class="spad-vol" id="spadVol2" min="0" max="1" step="0.05" value="0.8" oninput="setSamplerPadVolume(2,this.value)" title="Volume"><button class="spad-loop-btn" id="spadLoop2" onclick="toggleSamplerLoop(2)" title="One-shot / Loop">1×</button></div></div>
+            <div class="sampler-pad-wrapper" id="spadWrap3"><button class="sampler-pad s-crowd" id="spad3" onclick="playSample(3)">CROWD</button><div class="spad-controls"><input type="range" class="spad-vol" id="spadVol3" min="0" max="1" step="0.05" value="0.8" oninput="setSamplerPadVolume(3,this.value)" title="Volume"><button class="spad-loop-btn" id="spadLoop3" onclick="toggleSamplerLoop(3)" title="One-shot / Loop">1×</button></div></div>
+            <div class="sampler-pad-wrapper" id="spadWrap4"><button class="sampler-pad s-clap" id="spad4" onclick="playSample(4)">CLAP</button><div class="spad-controls"><input type="range" class="spad-vol" id="spadVol4" min="0" max="1" step="0.05" value="0.8" oninput="setSamplerPadVolume(4,this.value)" title="Volume"><button class="spad-loop-btn" id="spadLoop4" onclick="toggleSamplerLoop(4)" title="One-shot / Loop">1×</button></div></div>
+            <div class="sampler-pad-wrapper" id="spadWrap5"><button class="sampler-pad s-laser" id="spad5" onclick="playSample(5)">LASER</button><div class="spad-controls"><input type="range" class="spad-vol" id="spadVol5" min="0" max="1" step="0.05" value="0.8" oninput="setSamplerPadVolume(5,this.value)" title="Volume"><button class="spad-loop-btn" id="spadLoop5" onclick="toggleSamplerLoop(5)" title="One-shot / Loop">1×</button></div></div>
+            <div class="sampler-pad-wrapper" id="spadWrap6"><button class="sampler-pad s-kick" id="spad6" onclick="playSample(6)">KICK</button><div class="spad-controls"><input type="range" class="spad-vol" id="spadVol6" min="0" max="1" step="0.05" value="0.8" oninput="setSamplerPadVolume(6,this.value)" title="Volume"><button class="spad-loop-btn" id="spadLoop6" onclick="toggleSamplerLoop(6)" title="One-shot / Loop">1×</button></div></div>
+            <div class="sampler-pad-wrapper" id="spadWrap7"><button class="sampler-pad s-hihat" id="spad7" onclick="playSample(7)">HI-HAT</button><div class="spad-controls"><input type="range" class="spad-vol" id="spadVol7" min="0" max="1" step="0.05" value="0.8" oninput="setSamplerPadVolume(7,this.value)" title="Volume"><button class="spad-loop-btn" id="spadLoop7" onclick="toggleSamplerLoop(7)" title="One-shot / Loop">1×</button></div></div>
           </div>
         </div>
         <div class="section-divider"></div>
@@ -469,6 +484,7 @@
           <button class="slip-btn" id="slip2" onclick="toggleSlip(1)">SLIP</button>
           <button class="quantize-btn" id="quantize2" onclick="toggleQuantize(1)">Q</button>
           <button class="log-btn" id="logBtn2" onclick="logTrack(1)" disabled>📝 LOG</button>
+          <button class="vinyl-mode-btn" id="vinylMode2" onclick="toggleVinylMode(1)" data-tooltip="Vinyl mode — slowdown on stop, scratch sounds">🎵 VINYL</button>
         </div>
         <div class="tempo-section">
           <span class="tempo-range-label" id="tempoMin2" style="font-size:9px;color:#555">−8</span>
@@ -544,7 +560,7 @@
 <div class="about-overlay" id="aboutOverlay" onclick="if(event.target===this)toggleAboutPanel()">
   <div class="about-box">
     <h2>ⓘ About XDJ-RR</h2>
-    <div class="about-version">v29</div>
+    <div class="about-version">v30</div>
     <div class="about-content">
       <div class="stat-row"><span class="stat-label">Tracks in Library</span><span class="stat-value" id="aboutTrackCount">—</span></div>
       <div class="stat-row"><span class="stat-label">Waveform Cache</span><span class="stat-value" id="aboutWaveformStatus">—</span></div>
