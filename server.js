@@ -50,6 +50,9 @@ app.patch('/api/tracklist/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Serve static files (CSS, JS)
+app.use(express.static(__dirname));
+
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 app.get('/api/tracks', (req, res) => {
