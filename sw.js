@@ -1,5 +1,5 @@
-const CACHE_NAME = 'xdj-rr-v17';
-const PRECACHE = ['/', '/styles.css', '/app.js', '/effects.js', '/waveform.js', '/tracklist.js', '/sampler.js', '/discover.js', '/manifest.json'];
+const CACHE_NAME = 'xdj-rr-v18';
+const PRECACHE = ['/', '/styles.css', '/app.js', '/effects.js', '/waveform.js', '/tracklist.js', '/sampler.js', '/discover.js', '/mobile.js', '/manifest.json'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
