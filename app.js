@@ -1717,7 +1717,7 @@ document.addEventListener('keydown', e => {
     case 'x': nudgeDeck(0,1); setTimeout(()=>nudgeRelease(0),200); break;
     case ',': nudgeDeck(1,-1); setTimeout(()=>nudgeRelease(1),200); break;
     case '.': nudgeDeck(1,1); setTimeout(()=>nudgeRelease(1),200); break;
-    case 'b': togglePerformanceMode(); break;
+    case 'b': { const bp = document.getElementById('browserPanel'); bp.classList.toggle('hidden'); } break;
     case '?': toggleShortcuts(); break;
     case ' ':
       e.preventDefault();

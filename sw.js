@@ -1,4 +1,4 @@
-const CACHE_NAME = 'xdj-rr-v18';
+const CACHE_NAME = 'xdj-rr-v23';
 const PRECACHE = ['/', '/styles.css', '/app.js', '/effects.js', '/waveform.js', '/tracklist.js', '/sampler.js', '/discover.js', '/mobile.js', '/manifest.json'];
 
 self.addEventListener('install', e => {
