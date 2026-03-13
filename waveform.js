@@ -59,6 +59,57 @@ function wfZoom(deckId, dir) {
 }
 
 /**
+ * Draws overview waveform from server-provided peaks (no buffer needed).
+ * @param {object} deck - The deck object
+ * @param {number[]} peaks - Array of peak amplitudes (0-1)
+ */
+function drawOverviewWaveformFromPeaks(deck, peaks) {
+  const canvas = document.getElementById('ovCanvas' + (deck.id + 1));
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth * 2;
+  canvas.height = canvas.offsetHeight * 2;
+  const mid = canvas.height / 2;
+  ctx.fillStyle = '#080808';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const color = deck.id === 0 ? { r: 0, g: 170, b: 255 } : { r: 255, g: 136, b: 0 };
+  for (let i = 0; i < canvas.width; i++) {
+    const peakIdx = Math.floor((i / canvas.width) * peaks.length);
+    const amp = peaks[Math.min(peakIdx, peaks.length - 1)] || 0;
+    const h = amp * mid;
+    const alpha = 0.4 + amp * 0.6;
+    ctx.fillStyle = `rgba(${color.r},${color.g},${color.b},${alpha})`;
+    ctx.fillRect(i, mid - h, 1, h * 2);
+  }
+  deck._ovCache = ctx.getImageData(0, 0, canvas.width, canvas.height);
+}
+
+/**
+ * Draws static waveform from server-provided peaks (no buffer needed).
+ * @param {object} deck - The deck object
+ * @param {number[]} peaks - Array of peak amplitudes (0-1)
+ */
+function drawStaticWaveformFromPeaks(deck, peaks) {
+  const canvas = document.getElementById('wfCanvas' + (deck.id + 1));
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth * 2;
+  canvas.height = canvas.offsetHeight * 2;
+  const mid = canvas.height / 2;
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const color = deck.id === 0 ? { r: 0, g: 170, b: 255 } : { r: 255, g: 136, b: 0 };
+  for (let i = 0; i < canvas.width; i++) {
+    const peakIdx = Math.floor((i / canvas.width) * peaks.length);
+    const amp = peaks[Math.min(peakIdx, peaks.length - 1)] || 0;
+    const h = amp * mid;
+    const alpha = 0.3 + amp * 0.7;
+    ctx.fillStyle = `rgba(${color.r},${color.g},${color.b},${alpha})`;
+    ctx.fillRect(i, mid - h, 1, h * 2);
+  }
+  wfCache[deck.id] = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  deck._wfDrawn = true;
+}
+
+/**
  * Draws the overview waveform for a deck (full track, small display).
  * @param {object} deck - The deck object with buffer and wfFreqData
  */

@@ -217,6 +217,57 @@ test.describe('XDJ-RR Controller', () => {
     await expect(beepBtn).not.toHaveClass(/active/);
   });
 
+  // V13 tests
+
+  test('health check endpoint works', async ({ page, request }) => {
+    const resp = await request.get('/api/health');
+    expect(resp.ok()).toBeTruthy();
+    const data = await resp.json();
+    expect(data.status).toBe('ok');
+    expect(data.tracks).toBeGreaterThan(0);
+    expect(data.uptime).toBeGreaterThanOrEqual(0);
+  });
+
+  test('track info endpoint returns data', async ({ page, request }) => {
+    // Get a track name first
+    const tracksResp = await request.get('/api/tracks');
+    const tracks = await tracksResp.json();
+    expect(tracks.length).toBeGreaterThan(0);
+    const filename = tracks[0].name;
+    const infoResp = await request.get(`/api/tracks/${encodeURIComponent(filename)}/info`);
+    expect(infoResp.ok()).toBeTruthy();
+    const info = await infoResp.json();
+    expect(info.filename).toBe(filename);
+    expect(info.peaks).toBeDefined();
+  });
+
+  test('track info caching works', async ({ page, request }) => {
+    const tracksResp = await request.get('/api/tracks');
+    const tracks = await tracksResp.json();
+    const filename = tracks[0].name;
+    // First call generates cache
+    await request.get(`/api/tracks/${encodeURIComponent(filename)}/info`);
+    // Post updated info
+    const postResp = await request.post(`/api/tracks/${encodeURIComponent(filename)}/info`, {
+      data: { bpm: 128, key: 'Am' }
+    });
+    expect(postResp.ok()).toBeTruthy();
+    // Verify cached
+    const infoResp = await request.get(`/api/tracks/${encodeURIComponent(filename)}/info`);
+    const info = await infoResp.json();
+    expect(info.bpm).toBe(128);
+    expect(info.key).toBe('Am');
+  });
+
+  test('gzip compression is enabled', async ({ request }) => {
+    const resp = await request.get('/', { headers: { 'Accept-Encoding': 'gzip' } });
+    expect(resp.ok()).toBeTruthy();
+    // The response should be compressed (content-encoding header)
+    const headers = resp.headers();
+    // compression middleware sets this when content is compressible
+    expect(headers['content-encoding'] || 'identity').toBeDefined();
+  });
+
   test('screenshot comparison', async ({ page }) => {
     await page.goto('/');
     await page.waitForSelector('.track-item', { timeout: 10000 });

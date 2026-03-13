@@ -286,72 +286,197 @@ class Deck {
 
   /**
    * Loads an audio track from a URL.
+   * Uses HTML5 Audio element for streaming playback (fast start),
+   * and decodes full buffer in background for waveform/analysis.
    * @param {string} url - Track URL
    * @param {string} name - Display name
    */
   async loadTrack(url, name) {
     this.stop();
     this._lastUrl = url;
+    this._streamAudio = null;
+    this._streamSource = null;
+
+    // Extract filename for cache lookup
+    const filename = decodeURIComponent(url.split('/').pop());
+
+    // Try to load cached server-side info (waveform peaks)
+    let cachedInfo = null;
     try {
-      const resp = await fetch(url);
-      if (!resp.ok) throw new Error('HTTP ' + resp.status);
-      const arrayBuf = await resp.arrayBuffer();
-      if (arrayBuf.byteLength > 100 * 1024 * 1024) {
-        showError('Large file (' + Math.round(arrayBuf.byteLength / 1024 / 1024) + 'MB) — may be slow to decode');
-      }
-      this.buffer = await actx.decodeAudioData(arrayBuf);
+      const infoResp = await fetch('/api/tracks/' + encodeURIComponent(filename) + '/info');
+      if (infoResp.ok) cachedInfo = await infoResp.json();
+    } catch {}
+
+    // Set up streaming audio element for fast playback start
+    try {
+      const audio = new Audio(url);
+      audio.crossOrigin = 'anonymous';
+      audio.preload = 'auto';
+      this._streamAudio = audio;
+
+      // Create MediaElementAudioSourceNode
+      this._streamSource = actx.createMediaElementSource(audio);
+      this._streamSource.connect(this.trimGain);
+
+      // Wait for enough data to play
+      await new Promise((resolve, reject) => {
+        const onCanPlay = () => { audio.removeEventListener('canplay', onCanPlay); audio.removeEventListener('error', onError); resolve(); };
+        const onError = () => { audio.removeEventListener('canplay', onCanPlay); audio.removeEventListener('error', onError); reject(new Error('Stream load failed')); };
+        audio.addEventListener('canplay', onCanPlay);
+        audio.addEventListener('error', onError);
+        // If already ready
+        if (audio.readyState >= 3) resolve();
+      });
+
+      this._streamDuration = audio.duration || 0;
     } catch(e) {
-      this.buffer = null;
-      this.trackName = '';
-      throw e;
+      this._streamAudio = null;
+      this._streamSource = null;
     }
+
+    // Set initial state
     this.offset = 0;
     this.cuePoint = 0;
     this.trackName = name;
     this.hotCues = [null, null, null, null];
     this.loopActive = false;
     lastAutoLoggedTrack[this.id] = null;
-    this.detectBPM();
-    this.computeFrequencyColors();
-    drawOverviewWaveform(this);
-    drawStaticWaveform(this);
+
+    // If we have cached peaks, draw waveform immediately
+    if (cachedInfo && cachedInfo.peaks && cachedInfo.peaks.length > 0) {
+      this._serverPeaks = cachedInfo.peaks;
+      drawOverviewWaveformFromPeaks(this, cachedInfo.peaks);
+      drawStaticWaveformFromPeaks(this, cachedInfo.peaks);
+    }
+
+    // Use cached BPM/key if available
+    if (cachedInfo && cachedInfo.bpm) {
+      this.bpm = cachedInfo.bpm;
+    }
+    if (cachedInfo && cachedInfo.key) {
+      deckKeys[this.id] = cachedInfo.key;
+      const cam = getCamelot(cachedInfo.key);
+      document.getElementById('key' + (this.id + 1)).textContent = cachedInfo.key + (cam ? ' · ' + cam.code : '');
+    }
+    if (cachedInfo && cachedInfo.duration) {
+      this._streamDuration = cachedInfo.duration;
+    }
+
     updateHotCueButtons(this.id);
-    // Key detection
-    const key = detectKey(this);
-    deckKeys[this.id] = key;
-    document.getElementById('key' + (this.id + 1)).textContent = 'KEY: ' + key;
     addToHistory(this.id, name);
     updateXfadeHint();
     updateMarquee(this.id);
     updateHarmonicDisplay();
-    if (autoGainEnabled) applyAutoGain(this.id);
-    // Silence boundaries
-    const bounds = detectSilenceBoundaries(this.buffer);
-    this.introMarker = bounds.intro;
-    this.outroMarker = bounds.outro;
-    drawOverviewWaveform(this);
+
+    // If streaming failed entirely, try full buffer decode synchronously (will throw on failure)
+    if (!this._streamAudio) {
+      await this._decodeFullBuffer(url, filename, cachedInfo);
+    } else {
+      // Background: decode full buffer for analysis (BPM, key, detailed waveform)
+      this._decodeFullBuffer(url, filename, cachedInfo);
+    }
+  }
+
+  /**
+   * Decodes full audio buffer in background for analysis.
+   * @param {string} url - Track URL
+   * @param {string} filename - Original filename
+   * @param {object|null} cachedInfo - Previously cached info
+   */
+  async _decodeFullBuffer(url, filename, cachedInfo) {
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const arrayBuf = await resp.arrayBuffer();
+      this.buffer = await actx.decodeAudioData(arrayBuf);
+
+      // Only analyze if not cached
+      const needsBPM = !cachedInfo || !cachedInfo.bpm;
+      const needsKey = !cachedInfo || !cachedInfo.key;
+
+      if (needsBPM) this.detectBPM();
+      if (needsKey) {
+        const key = detectKey(this);
+        deckKeys[this.id] = key;
+        document.getElementById('key' + (this.id + 1)).textContent = 'KEY: ' + key;
+        updateHarmonicDisplay();
+      }
+
+      this.computeFrequencyColors();
+      drawOverviewWaveform(this);
+      drawStaticWaveform(this);
+
+      if (autoGainEnabled) applyAutoGain(this.id);
+
+      // Silence boundaries
+      const bounds = detectSilenceBoundaries(this.buffer);
+      this.introMarker = bounds.intro;
+      this.outroMarker = bounds.outro;
+      drawOverviewWaveform(this);
+
+      // Cache analysis results back to server
+      const cacheData = {
+        bpm: this.bpm,
+        key: deckKeys[this.id],
+        duration: this.buffer.duration
+      };
+      fetch('/api/tracks/' + encodeURIComponent(filename) + '/info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cacheData)
+      }).catch(() => {});
+    } catch(e) {
+      // If streaming is working, this is non-fatal
+      if (!this._streamAudio) {
+        this.buffer = null;
+        this.trackName = '';
+        throw e;
+      }
+    }
   }
 
   /** Starts playback from current offset */
   play() {
-    if (!this.buffer || this.playing) return;
+    if (this.playing) return;
+    if (!this.buffer && !this._streamAudio) return;
     actx.resume();
-    this.source = actx.createBufferSource();
-    this.source.buffer = this.buffer;
-    this.source.playbackRate.value = this.playbackRate;
-    this.source.connect(this.trimGain);
-    this.source.start(0, this.offset);
-    this.startTime = actx.currentTime - this.offset / this.playbackRate;
-    this.playing = true;
-    this.source.onended = () => { if (this.playing) { this.playing = false; this.offset = 0; updateUI(); } };
+
+    if (this._streamAudio) {
+      // Streaming playback via HTML5 Audio element
+      this._streamAudio.currentTime = this.offset;
+      this._streamAudio.playbackRate = this.playbackRate;
+      this._streamAudio.play().catch(() => {});
+      this.startTime = actx.currentTime - this.offset / this.playbackRate;
+      this.playing = true;
+      this._streamAudio.onended = () => { if (this.playing) { this.playing = false; this.offset = 0; updateUI(); } };
+    } else if (this.buffer) {
+      // Fallback: buffer source playback
+      this.source = actx.createBufferSource();
+      this.source.buffer = this.buffer;
+      this.source.playbackRate.value = this.playbackRate;
+      this.source.connect(this.trimGain);
+      this.source.start(0, this.offset);
+      this.startTime = actx.currentTime - this.offset / this.playbackRate;
+      this.playing = true;
+      this.source.onended = () => { if (this.playing) { this.playing = false; this.offset = 0; updateUI(); } };
+    }
     updateUI();
     if (this.offset < 1) autoLogTrack(this.id);
   }
 
   /** Stops playback and saves current position */
   stop() {
-    if (this.source) { try { this.source.stop(); } catch(e){} this.source.disconnect(); this.source = null; }
-    if (this.playing) { this.offset = (actx.currentTime - this.startTime) * this.playbackRate; }
+    if (this._streamAudio && this.playing) {
+      this.offset = this._streamAudio.currentTime;
+      this._streamAudio.pause();
+    } else if (this.source) {
+      try { this.source.stop(); } catch(e){}
+      this.source.disconnect();
+      this.source = null;
+      if (this.playing) { this.offset = (actx.currentTime - this.startTime) * this.playbackRate; }
+    } else if (this.playing) {
+      this.offset = (actx.currentTime - this.startTime) * this.playbackRate;
+    }
     this.playing = false;
     updateUI();
   }
@@ -367,8 +492,19 @@ class Deck {
    * @returns {number}
    */
   getCurrentTime() {
+    if (this._streamAudio && this.playing) return this._streamAudio.currentTime;
     if (this.playing) return (actx.currentTime - this.startTime) * this.playbackRate;
     return this.offset;
+  }
+
+  /**
+   * Gets the track duration.
+   * @returns {number}
+   */
+  getDuration() {
+    if (this.buffer) return this.buffer.duration;
+    if (this._streamAudio) return this._streamAudio.duration || this._streamDuration || 0;
+    return this._streamDuration || 0;
   }
 
   /**
@@ -378,7 +514,7 @@ class Deck {
   seekTo(time) {
     const wasPlaying = this.playing;
     if (wasPlaying) this.stop();
-    this.offset = Math.max(0, Math.min(time, this.buffer ? this.buffer.duration : 0));
+    this.offset = Math.max(0, Math.min(time, this.getDuration()));
     if (wasPlaying) this.play();
   }
 
@@ -389,6 +525,7 @@ class Deck {
   setTempo(percent) {
     this.playbackRate = 1 + percent / 100;
     if (this.source) this.source.playbackRate.value = this.playbackRate + this.nudgeAmount;
+    if (this._streamAudio) this._streamAudio.playbackRate = this.playbackRate + this.nudgeAmount;
   }
 
   /**
@@ -573,11 +710,13 @@ function nudgeDeck(deckId, dir) {
   const deck = decks[deckId];
   deck.nudgeAmount = dir * 0.02;
   if (deck.source) deck.source.playbackRate.value = deck.playbackRate + deck.nudgeAmount;
+  if (deck._streamAudio) deck._streamAudio.playbackRate = deck.playbackRate + deck.nudgeAmount;
 }
 function nudgeRelease(deckId) {
   const deck = decks[deckId];
   deck.nudgeAmount = 0;
   if (deck.source) deck.source.playbackRate.value = deck.playbackRate;
+  if (deck._streamAudio) deck._streamAudio.playbackRate = deck.playbackRate;
 }
 
 // ==================== JOG MARKERS ====================
@@ -594,18 +733,20 @@ for (let d = 1; d <= 2; d++) {
 // ==================== SEEK ====================
 function seekDeck(deckId, event) {
   const deck = decks[deckId];
-  if (!deck.buffer) return;
+  const dur = deck.getDuration();
+  if (!dur) return;
   const bar = event.currentTarget;
   const rect = bar.getBoundingClientRect();
   const pct = (event.clientX - rect.left) / rect.width;
-  deck.seekTo(pct * deck.buffer.duration);
+  deck.seekTo(pct * dur);
 }
 function seekDeckFromOverview(deckId, event) {
   const deck = decks[deckId];
-  if (!deck.buffer) return;
+  const dur = deck.getDuration();
+  if (!dur) return;
   const rect = event.currentTarget.getBoundingClientRect();
   const pct = ((event.touches ? event.touches[0].clientX : event.clientX) - rect.left) / rect.width;
-  deck.seekTo(Math.max(0, Math.min(1, pct)) * deck.buffer.duration);
+  deck.seekTo(Math.max(0, Math.min(1, pct)) * dur);
 }
 
 // ==================== QUANTIZE ====================
@@ -1434,11 +1575,11 @@ function toggleBeepWarning() {
 function checkTrackEndWarning() {
   for (let i = 0; i < 2; i++) {
     const deck = decks[i];
-    if (!deck.buffer || !deck.playing) {
+    if ((!deck.buffer && !deck._streamAudio) || !deck.playing) {
       document.getElementById('wfTime' + (i+1)).classList.remove('time-warning', 'time-critical');
       continue;
     }
-    const remaining = deck.buffer.duration - deck.getCurrentTime();
+    const remaining = deck.getDuration() - deck.getCurrentTime();
     const timeEl = document.getElementById('wfTime' + (i+1));
     if (remaining < 10) {
       timeEl.classList.remove('time-warning'); timeEl.classList.add('time-critical');
@@ -1523,9 +1664,10 @@ function animate() {
   }
   for (let i = 0; i < 2; i++) {
     const t = decks[i].getCurrentTime();
-    if (decks[i].buffer) {
-      document.getElementById('wfTime' + (i + 1)).textContent = formatTime(t) + ' / ' + formatTime(decks[i].buffer.duration);
-      document.getElementById('progressFill' + (i + 1)).style.width = (t / decks[i].buffer.duration) * 100 + '%';
+    const dur = decks[i].getDuration();
+    if (dur > 0) {
+      document.getElementById('wfTime' + (i + 1)).textContent = formatTime(t) + ' / ' + formatTime(dur);
+      document.getElementById('progressFill' + (i + 1)).style.width = (t / dur) * 100 + '%';
     } else {
       document.getElementById('wfTime' + (i + 1)).textContent = formatTime(t);
     }
