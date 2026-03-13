@@ -7,4 +7,10 @@ module.exports = defineConfig({
     headless: true,
   },
   projects: [{ name: 'chromium', use: { browserName: 'chromium' } }],
+  webServer: {
+    command: 'node server.js',
+    port: 3000,
+    reuseExistingServer: true,
+    timeout: 10000,
+  },
 });

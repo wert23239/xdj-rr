@@ -18,6 +18,7 @@
     <button class="swap-btn" id="swapBtn" onclick="swapDecks()" title="Swap decks">⇄ SWAP</button>
     <button class="beep-toggle" id="beepToggle" onclick="toggleBeepWarning()">🔔 BEEP</button>
     <button class="parallel-wf-btn" id="parallelWfBtn" onclick="toggleParallelWaveforms()" title="Parallel waveforms">∥ WF</button>
+    <button class="discover-btn" id="discoverBtn" onclick="toggleDiscover()" title="Song Discovery">🔍 DISCOVER</button>
     <button class="help-btn" id="helpBtn" onclick="toggleShortcuts()" title="Keyboard Shortcuts">?</button>
     <span id="status">Loading...</span>
   </div>
@@ -379,11 +380,31 @@
   <div id="tracklistEntries"></div>
 </div>
 
+<!-- DISCOVER PANEL -->
+<div class="discover-panel" id="discoverPanel" style="display:none">
+  <div class="discover-section">
+    <div class="discover-search-row">
+      <input type="text" id="discoverSearch" placeholder="Search artist or song..." onkeydown="if(event.key==='Enter')searchSongs()">
+      <button onclick="searchSongs()">🔍 Search</button>
+    </div>
+    <div class="discover-results" id="discoverResults">
+      <div class="discover-empty">Search for songs on YouTube & SoundCloud</div>
+    </div>
+  </div>
+  <div class="discover-section">
+    <div class="discover-section-label">📥 Downloads</div>
+    <div class="download-queue" id="downloadQueue">
+      <div class="discover-empty">No downloads yet</div>
+    </div>
+  </div>
+</div>
+
 <!-- JS modules: order matters (effects & waveform before app) -->
 <script src="/effects.js"></script>
 <script src="/waveform.js"></script>
 <script src="/tracklist.js"></script>
 <script src="/sampler.js"></script>
+<script src="/discover.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>

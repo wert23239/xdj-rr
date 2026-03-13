@@ -302,4 +302,116 @@ app.delete('/api/playlists/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ==================== SONG DISCOVERY ====================
+const { execFile, spawn } = require('child_process');
+
+// In-memory download queue
+const downloadQueue = [];
+
+// POST /api/search — search YouTube + SoundCloud via yt-dlp
+app.get('/api/search', async (req, res) => {
+  const q = (req.query.q || '').trim();
+  if (!q) return res.json([]);
+
+  const runSearch = (prefix) => new Promise((resolve) => {
+    const proc = spawn('yt-dlp', [`${prefix}${q}`, '--dump-json', '--flat-playlist', '--no-download'], {
+      timeout: 15000, env: { ...process.env }
+    });
+    let stdout = '', stderr = '';
+    proc.stdout.on('data', d => stdout += d);
+    proc.stderr.on('data', d => stderr += d);
+    proc.on('close', () => {
+      const results = [];
+      for (const line of stdout.split('\n')) {
+        if (!line.trim()) continue;
+        try {
+          const j = JSON.parse(line);
+          results.push({
+            title: j.title || j.fulltitle || 'Unknown',
+            duration: j.duration || 0,
+            url: j.url || j.webpage_url || j.original_url || '',
+            thumbnail: j.thumbnail || j.thumbnails?.[0]?.url || '',
+            source: prefix.startsWith('yt') ? 'youtube' : 'soundcloud',
+            uploader: j.uploader || j.channel || ''
+          });
+        } catch {}
+      }
+      resolve(results);
+    });
+    proc.on('error', () => resolve([]));
+  });
+
+  try {
+    const [yt, sc] = await Promise.all([
+      runSearch('ytsearch5:'),
+      runSearch('scsearch5:')
+    ]);
+    res.json([...yt, ...sc]);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/download — download a track to the DJ library
+app.post('/api/download', async (req, res) => {
+  const { url, title } = req.body;
+  if (!url) return res.status(400).json({ error: 'url required' });
+
+  const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const entry = { id, title: title || 'Unknown', url, status: 'downloading', progress: '', error: null, startedAt: Date.now() };
+  downloadQueue.push(entry);
+
+  // Also insert into Supabase dj table as backup
+  try {
+    // Parse artist/song from title
+    const parts = (title || '').split(' - ');
+    const artist = parts.length > 1 ? parts[0].trim() : '';
+    const song = parts.length > 1 ? parts.slice(1).join(' - ').trim() : (title || '');
+    await fetch(`${SUPABASE_URL}/rest/v1/dj`, {
+      method: 'POST', headers: sbHeaders,
+      body: JSON.stringify({ song, artist, status: 'queued', source: url })
+    });
+  } catch (e) { console.error('Supabase insert error:', e.message); }
+
+  res.json({ id, status: 'downloading' });
+
+  // Start download in background
+  const proc = spawn('yt-dlp', [
+    '-x', '--audio-format', 'wav',
+    '-o', path.join(MUSIC_DIR, '%(title)s.%(ext)s'),
+    '--no-playlist',
+    '--newline',
+    url
+  ]);
+
+  proc.stdout.on('data', d => {
+    const line = d.toString().trim();
+    const m = line.match(/(\d+\.?\d*)%/);
+    if (m) entry.progress = m[1] + '%';
+  });
+  proc.stderr.on('data', d => {
+    const line = d.toString().trim();
+    const m = line.match(/(\d+\.?\d*)%/);
+    if (m) entry.progress = m[1] + '%';
+  });
+  proc.on('close', code => {
+    if (code === 0) {
+      entry.status = 'complete';
+      entry.progress = '100%';
+    } else {
+      entry.status = 'failed';
+      entry.error = 'yt-dlp exited with code ' + code;
+    }
+  });
+  proc.on('error', err => {
+    entry.status = 'failed';
+    entry.error = err.message;
+  });
+});
+
+// GET /api/downloads — get download queue status
+app.get('/api/downloads', (req, res) => {
+  res.json(downloadQueue.slice(-20).reverse());
+});
+
 app.listen(PORT, () => console.log(`XDJ-RR server running on http://localhost:${PORT}`));
