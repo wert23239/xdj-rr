@@ -168,6 +168,55 @@ test.describe('XDJ-RR Controller', () => {
     await expect(page.locator('.error-toast')).toBeVisible({ timeout: 5000 });
   });
 
+  // V10 tests
+
+  test('TAP buttons exist per deck', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#tap1')).toBeVisible();
+    await expect(page.locator('#tap2')).toBeVisible();
+    await expect(page.locator('#tap1')).toContainText('TAP');
+  });
+
+  test('crossfader curve selector exists', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('.xfade-curve-section')).toBeVisible();
+    await expect(page.locator('#xfCurveSmooth')).toHaveClass(/active/);
+    await page.locator('#xfCurveSharp').click();
+    await expect(page.locator('#xfCurveSharp')).toHaveClass(/active/);
+    await expect(page.locator('#xfCurveSmooth')).not.toHaveClass(/active/);
+  });
+
+  test('cue/master mix knob exists', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('.cue-master-section')).toBeVisible();
+    await expect(page.locator('#cueMasterVal')).toBeVisible();
+  });
+
+  test('mini-mixer toggle works', async ({ page }) => {
+    await page.goto('/');
+    const miniBtn = page.locator('#miniToggle');
+    await expect(miniBtn).toBeVisible();
+    await miniBtn.click();
+    await expect(page.locator('body')).toHaveClass(/mini-mixer/);
+    await miniBtn.click();
+    await expect(page.locator('body')).not.toHaveClass(/mini-mixer/);
+  });
+
+  test('swap button exists', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#swapBtn')).toBeVisible();
+  });
+
+  test('beep warning toggle exists', async ({ page }) => {
+    await page.goto('/');
+    const beepBtn = page.locator('#beepToggle');
+    await expect(beepBtn).toBeVisible();
+    await beepBtn.click();
+    await expect(beepBtn).toHaveClass(/active/);
+    await beepBtn.click();
+    await expect(beepBtn).not.toHaveClass(/active/);
+  });
+
   test('screenshot comparison', async ({ page }) => {
     await page.goto('/');
     await page.waitForSelector('.track-item', { timeout: 10000 });
