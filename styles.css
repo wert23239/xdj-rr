@@ -480,6 +480,48 @@ body.light-theme .playlist-panel{background:#f0f0f0;border-color:#ddd}
 body.light-theme .playlist-header{background:#eee;border-color:#ddd}
 body.light-theme .deck-header{background:linear-gradient(180deg,#eee 0%,#e0e0e0 100%);border-color:#ccc}
 
+/* EQ Kill buttons */
+.eq-knob-row{display:flex;align-items:center;gap:3px}
+.eq-kill-btn{width:20px;height:20px;border:1px solid #3a3a40;background:linear-gradient(180deg,#222226 0%,#1a1a1e 100%);color:#888;border-radius:3px;font-size:8px;cursor:pointer;font-weight:700;padding:0;box-shadow:0 1px 2px rgba(0,0,0,0.3);transition:all .1s}
+.eq-kill-btn.active{border-color:#f33;color:#f33;background:linear-gradient(180deg,#3a0a0a 0%,#2a0505 100%);box-shadow:0 0 8px rgba(255,51,51,0.4)}
+
+/* Vinyl brake button */
+.btn-vinyl{background:linear-gradient(180deg,#2a2a30 0%,#1a1a1e 100%);color:#888;border:1px solid #3a3a40;border-radius:5px;padding:10px 10px;font-size:9px;font-weight:700;cursor:pointer;text-transform:uppercase;box-shadow:0 3px 6px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.08)}
+.btn-vinyl.active{border-color:#f0f;color:#f0f;background:linear-gradient(180deg,#2a0a2a 0%,#1a051a 100%);box-shadow:0 0 10px rgba(255,0,255,0.3)}
+
+/* Reverse button */
+.btn-reverse{background:linear-gradient(180deg,#2a1a1a 0%,#1a0a0a 100%);color:#f80;border:1px solid #553a1a;border-radius:5px;padding:10px 10px;font-size:9px;font-weight:700;cursor:pointer;text-transform:uppercase;box-shadow:0 3px 6px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.08);touch-action:manipulation}
+.btn-reverse:active,.btn-reverse.active{border-color:#f80;color:#fff;background:linear-gradient(180deg,#f80 0%,#a55000 100%);box-shadow:0 0 15px rgba(255,136,0,0.4)}
+
+/* Beat jump */
+.beat-jump-section{display:flex;gap:3px;justify-content:center;align-items:center;flex-wrap:wrap}
+.beat-jump-btn{padding:4px 6px;border:1px solid #3a3a40;background:linear-gradient(180deg,#222226 0%,#1a1a1e 100%);color:#888;border-radius:var(--button-radius);font-size:8px;cursor:pointer;font-weight:700;touch-action:manipulation;box-shadow:0 2px 4px rgba(0,0,0,0.4);transition:all .08s}
+.beat-jump-btn:active{background:linear-gradient(180deg,#3a3a40 0%,#2a2a30 100%);color:#fff;transform:translateY(1px)}
+
+/* Parallel waveforms */
+.parallel-waveforms{height:160px;display:flex;flex-direction:column;background:#050508;border-bottom:1px solid #2a2a2e;flex-shrink:0}
+.parallel-wf-container{flex:1;position:relative;overflow:hidden}
+.parallel-wf-container canvas{width:100%;height:100%}
+.parallel-wf-label{position:absolute;top:2px;left:6px;font-size:10px;font-weight:700;opacity:.6}
+.parallel-wf-btn{padding:4px 10px;border:1px solid #3a3a40;background:linear-gradient(180deg,#2a2a30 0%,#1a1a1e 100%);color:#888;border-radius:var(--button-radius);font-size:10px;cursor:pointer;text-transform:uppercase;font-weight:700;transition:all .15s;box-shadow:0 1px 3px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.05)}
+.parallel-wf-btn.active{border-color:#0af;color:#0af;background:linear-gradient(180deg,#0a1a2a 0%,#050f1a 100%);box-shadow:0 0 8px rgba(0,170,255,0.3)}
+
+/* Auto-mix */
+.automix-section{display:flex;flex-direction:column;align-items:center;gap:3px;padding:2px 0}
+.automix-section label{font-size:8px;color:#555;text-transform:uppercase;letter-spacing:1px}
+.automix-btns{display:flex;gap:3px;flex-wrap:wrap;justify-content:center}
+.automix-btn{padding:4px 8px;border:1px solid #3a3a40;background:linear-gradient(180deg,#222226 0%,#1a1a1e 100%);color:#888;border-radius:var(--button-radius);font-size:8px;cursor:pointer;font-weight:700;text-transform:uppercase;transition:all .15s;box-shadow:0 2px 4px rgba(0,0,0,0.4)}
+.automix-btn:hover{border-color:#0af;color:#0af}
+.automix-btn.running{border-color:#0f0;color:#0f0;background:linear-gradient(180deg,#0a2a0a 0%,#051a05 100%);animation:automix-pulse 1s infinite}
+@keyframes automix-pulse{0%,100%{box-shadow:0 2px 4px rgba(0,0,0,0.4)}50%{box-shadow:0 0 12px rgba(0,255,0,.4)}}
+
+/* Track BPM indicator in browser */
+.track-bpm{font-size:9px;font-weight:700;padding:1px 4px;border-radius:2px;min-width:32px;text-align:center;font-family:'Courier New',monospace;flex-shrink:0}
+.track-bpm.bpm-green{color:#0c6;background:#0a2a1a}
+.track-bpm.bpm-yellow{color:#cc0;background:#2a2a0a}
+.track-bpm.bpm-red{color:#f33;background:#2a0a0a}
+.track-bpm.bpm-neutral{color:#555;background:#1a1a1e}
+
 /* ============ Mobile ============ */
 @media (max-width: 900px) {
   .browser{width:180px}

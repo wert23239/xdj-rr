@@ -17,6 +17,7 @@
     <button class="mini-toggle" id="miniToggle" onclick="toggleMiniMixer()">MINI</button>
     <button class="swap-btn" id="swapBtn" onclick="swapDecks()" title="Swap decks">⇄ SWAP</button>
     <button class="beep-toggle" id="beepToggle" onclick="toggleBeepWarning()">🔔 BEEP</button>
+    <button class="parallel-wf-btn" id="parallelWfBtn" onclick="toggleParallelWaveforms()" title="Parallel waveforms">∥ WF</button>
     <button class="help-btn" id="helpBtn" onclick="toggleShortcuts()" title="Keyboard Shortcuts">?</button>
     <span id="status">Loading...</span>
   </div>
@@ -33,6 +34,10 @@
       <div class="overview-container" id="ov1" onclick="seekDeckFromOverview(0,event)"><canvas id="ovCanvas1"></canvas></div>
       <div class="overview-divider"></div>
       <div class="overview-container" id="ov2" onclick="seekDeckFromOverview(1,event)"><canvas id="ovCanvas2"></canvas></div>
+    </div>
+    <div class="parallel-waveforms" id="parallelWaveforms" style="display:none">
+      <div class="parallel-wf-container" id="pwf1"><canvas id="pwfCanvas1"></canvas><div class="parallel-wf-label" style="color:var(--deck1)">D1</div></div>
+      <div class="parallel-wf-container" id="pwf2"><canvas id="pwfCanvas2"></canvas><div class="parallel-wf-label" style="color:var(--deck2)">D2</div></div>
     </div>
     <div class="waveforms">
       <div class="waveform-container" id="wf1">
@@ -95,6 +100,17 @@
           <button class="btn-cue" id="cue1">CUE</button>
           <button class="btn-play" id="play1">▶ PLAY</button>
           <button class="btn-sync" id="sync1">SYNC</button>
+          <button class="btn-vinyl" id="vinyl1" onclick="toggleVinylBrake(0)">VINYL</button>
+          <button class="btn-reverse" id="reverse1" onmousedown="startReverse(0)" onmouseup="stopReverse(0)" ontouchstart="startReverse(0)" ontouchend="stopReverse(0)">REV</button>
+        </div>
+        <div class="beat-jump-section">
+          <button class="beat-jump-btn" onclick="beatJump(0,-32)">«32</button>
+          <button class="beat-jump-btn" onclick="beatJump(0,-8)">«8</button>
+          <button class="beat-jump-btn" onclick="beatJump(0,-1)">«1</button>
+          <span style="font-size:9px;color:#555">BEAT JUMP</span>
+          <button class="beat-jump-btn" onclick="beatJump(0,1)">1»</button>
+          <button class="beat-jump-btn" onclick="beatJump(0,8)">8»</button>
+          <button class="beat-jump-btn" onclick="beatJump(0,32)">32»</button>
         </div>
         <div class="nudge-section">
           <button class="nudge-btn" onmousedown="nudgeDeck(0,-1)" onmouseup="nudgeRelease(0)" ontouchstart="nudgeDeck(0,-1)" ontouchend="nudgeRelease(0)">−</button>
@@ -127,11 +143,11 @@
             <div class="knob" data-param="gain" data-ch="0" title="GAIN"><div class="knob-indicator"></div></div>
             <label>Gain</label>
             <span class="gain-val" id="gainVal1">0dB</span>
-            <div class="knob" data-param="hi" data-ch="0" title="HI"><div class="knob-indicator"></div></div>
+            <div class="eq-knob-row"><div class="knob" data-param="hi" data-ch="0" title="HI"><div class="knob-indicator"></div></div><button class="eq-kill-btn" data-ch="0" data-band="hi" onclick="toggleEqKill(0,'hi',this)">K</button></div>
             <label>Hi</label>
-            <div class="knob" data-param="mid" data-ch="0" title="MID"><div class="knob-indicator"></div></div>
+            <div class="eq-knob-row"><div class="knob" data-param="mid" data-ch="0" title="MID"><div class="knob-indicator"></div></div><button class="eq-kill-btn" data-ch="0" data-band="mid" onclick="toggleEqKill(0,'mid',this)">K</button></div>
             <label>Mid</label>
-            <div class="knob" data-param="lo" data-ch="0" title="LO"><div class="knob-indicator"></div></div>
+            <div class="eq-knob-row"><div class="knob" data-param="lo" data-ch="0" title="LO"><div class="knob-indicator"></div></div><button class="eq-kill-btn" data-ch="0" data-band="lo" onclick="toggleEqKill(0,'lo',this)">K</button></div>
             <label>Lo</label>
           </div>
           <div class="eq-col">
@@ -139,11 +155,11 @@
             <div class="knob" data-param="gain" data-ch="1" title="GAIN"><div class="knob-indicator"></div></div>
             <label>Gain</label>
             <span class="gain-val" id="gainVal2">0dB</span>
-            <div class="knob" data-param="hi" data-ch="1" title="HI"><div class="knob-indicator"></div></div>
+            <div class="eq-knob-row"><div class="knob" data-param="hi" data-ch="1" title="HI"><div class="knob-indicator"></div></div><button class="eq-kill-btn" data-ch="1" data-band="hi" onclick="toggleEqKill(1,'hi',this)">K</button></div>
             <label>Hi</label>
-            <div class="knob" data-param="mid" data-ch="1" title="MID"><div class="knob-indicator"></div></div>
+            <div class="eq-knob-row"><div class="knob" data-param="mid" data-ch="1" title="MID"><div class="knob-indicator"></div></div><button class="eq-kill-btn" data-ch="1" data-band="mid" onclick="toggleEqKill(1,'mid',this)">K</button></div>
             <label>Mid</label>
-            <div class="knob" data-param="lo" data-ch="1" title="LO"><div class="knob-indicator"></div></div>
+            <div class="eq-knob-row"><div class="knob" data-param="lo" data-ch="1" title="LO"><div class="knob-indicator"></div></div><button class="eq-kill-btn" data-ch="1" data-band="lo" onclick="toggleEqKill(1,'lo',this)">K</button></div>
             <label>Lo</label>
           </div>
         </div>
@@ -199,6 +215,14 @@
           <button class="auto-xfade-btn" id="autoXfadeR" onclick="autoXfade('right')" title="Auto-crossfade to Deck 2">D2 →</button>
         </div>
         <div class="xfade-hint" id="xfadeHint"></div>
+        <div class="automix-section">
+          <label>Auto-Mix</label>
+          <div class="automix-btns">
+            <button class="automix-btn" onclick="autoMixTransition('smooth16')" title="Smooth 16-bar blend">16-BAR</button>
+            <button class="automix-btn" onclick="autoMixTransition('echoOut')" title="Echo out transition">ECHO OUT</button>
+            <button class="automix-btn" onclick="autoMixTransition('cutSwap')" title="Instant cut swap">CUT SWAP</button>
+          </div>
+        </div>
         <div class="section-divider"></div>
         <div class="sampler">
           <div class="sampler-label">Sampler</div>
@@ -265,6 +289,17 @@
           <button class="btn-cue" id="cue2">CUE</button>
           <button class="btn-play" id="play2">▶ PLAY</button>
           <button class="btn-sync" id="sync2">SYNC</button>
+          <button class="btn-vinyl" id="vinyl2" onclick="toggleVinylBrake(1)">VINYL</button>
+          <button class="btn-reverse" id="reverse2" onmousedown="startReverse(1)" onmouseup="stopReverse(1)" ontouchstart="startReverse(1)" ontouchend="stopReverse(1)">REV</button>
+        </div>
+        <div class="beat-jump-section">
+          <button class="beat-jump-btn" onclick="beatJump(1,-32)">«32</button>
+          <button class="beat-jump-btn" onclick="beatJump(1,-8)">«8</button>
+          <button class="beat-jump-btn" onclick="beatJump(1,-1)">«1</button>
+          <span style="font-size:9px;color:#555">BEAT JUMP</span>
+          <button class="beat-jump-btn" onclick="beatJump(1,1)">1»</button>
+          <button class="beat-jump-btn" onclick="beatJump(1,8)">8»</button>
+          <button class="beat-jump-btn" onclick="beatJump(1,32)">32»</button>
         </div>
         <div class="nudge-section">
           <button class="nudge-btn" onmousedown="nudgeDeck(1,-1)" onmouseup="nudgeRelease(1)" ontouchstart="nudgeDeck(1,-1)" ontouchend="nudgeRelease(1)">−</button>

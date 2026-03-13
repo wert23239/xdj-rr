@@ -1655,6 +1655,322 @@ for (let i = 0; i < 2; i++) {
 // Window resize
 window.addEventListener('resize', () => { decks.forEach(d => { if (d.buffer) { drawOverviewWaveform(d); drawStaticWaveform(d); } }); });
 
+// ==================== EQ KILL SWITCHES ====================
+const eqKillState = [{hi:false,mid:false,lo:false},{hi:false,mid:false,lo:false}];
+const eqKillSavedGain = [{hi:0,mid:0,lo:0},{hi:0,mid:0,lo:0}];
+
+function toggleEqKill(ch, band, btn) {
+  const deck = decks[ch];
+  const node = band === 'hi' ? deck.eqHi : band === 'mid' ? deck.eqMid : deck.eqLo;
+  if (!eqKillState[ch][band]) {
+    eqKillSavedGain[ch][band] = node.gain.value;
+    node.gain.value = -60;
+    eqKillState[ch][band] = true;
+    btn.classList.add('active');
+  } else {
+    node.gain.value = eqKillSavedGain[ch][band];
+    eqKillState[ch][band] = false;
+    btn.classList.remove('active');
+  }
+}
+
+// ==================== VINYL BRAKE ====================
+const vinylBrakeEnabled = [false, false];
+
+function toggleVinylBrake(deckId) {
+  vinylBrakeEnabled[deckId] = !vinylBrakeEnabled[deckId];
+  document.getElementById('vinyl' + (deckId + 1)).classList.toggle('active', vinylBrakeEnabled[deckId]);
+}
+
+// Override stop to support vinyl brake
+const _originalStop = Deck.prototype.stop;
+Deck.prototype.stop = function() {
+  if (vinylBrakeEnabled[this.id] && this.playing) {
+    // Vinyl brake: gradually slow down
+    const deck = this;
+    const audio = deck._streamAudio;
+    const startRate = deck.playbackRate;
+    const duration = 800; // ms
+    const startTime = performance.now();
+    deck._vinylBraking = true;
+
+    function brakeStep() {
+      if (!deck._vinylBraking) return;
+      const elapsed = performance.now() - startTime;
+      const progress = Math.min(1, elapsed / duration);
+      // Ease-out curve for natural vinyl stop feel
+      const rate = startRate * (1 - progress * progress);
+      if (audio) {
+        audio.playbackRate = Math.max(0.01, rate);
+      } else if (deck.source) {
+        deck.source.playbackRate.value = Math.max(0.01, rate);
+      }
+      if (progress >= 1) {
+        deck._vinylBraking = false;
+        _originalStop.call(deck);
+        // Restore playback rate for next play
+        if (audio) audio.playbackRate = deck.playbackRate;
+        return;
+      }
+      requestAnimationFrame(brakeStep);
+    }
+    brakeStep();
+  } else {
+    _originalStop.call(this);
+  }
+};
+
+// ==================== REVERSE PLAY ====================
+function startReverse(deckId) {
+  const deck = decks[deckId];
+  if (!deck.playing || !deck._streamAudio) return;
+  // Web Audio API doesn't support negative playbackRate on MediaElement
+  // We'll simulate by rapidly seeking backwards
+  deck._reversing = true;
+  deck._reverseInterval = setInterval(() => {
+    if (!deck._reversing || !deck.playing) { clearInterval(deck._reverseInterval); return; }
+    const t = deck.getCurrentTime();
+    const step = (1 / 30) * deck.playbackRate; // ~1 frame worth of audio backward
+    deck.seekTo(Math.max(0, t - step * 2));
+  }, 33);
+  document.getElementById('reverse' + (deckId + 1)).classList.add('active');
+}
+
+function stopReverse(deckId) {
+  const deck = decks[deckId];
+  deck._reversing = false;
+  if (deck._reverseInterval) clearInterval(deck._reverseInterval);
+  document.getElementById('reverse' + (deckId + 1)).classList.remove('active');
+}
+
+// ==================== BEAT JUMP ====================
+function beatJump(deckId, beats) {
+  const deck = decks[deckId];
+  if (!deck.bpm) return;
+  const beatDur = 60 / deck.bpm;
+  const jumpAmount = beats * beatDur;
+  const newTime = deck.getCurrentTime() + jumpAmount;
+  deck.seekTo(Math.max(0, Math.min(newTime, deck.getDuration())));
+}
+
+// ==================== PARALLEL WAVEFORMS ====================
+let parallelWaveformsEnabled = false;
+
+function toggleParallelWaveforms() {
+  parallelWaveformsEnabled = !parallelWaveformsEnabled;
+  document.getElementById('parallelWfBtn').classList.toggle('active', parallelWaveformsEnabled);
+  document.getElementById('parallelWaveforms').style.display = parallelWaveformsEnabled ? '' : 'none';
+  if (parallelWaveformsEnabled) {
+    // Initial draw
+    drawParallelWaveforms();
+  }
+}
+
+function drawParallelWaveforms() {
+  if (!parallelWaveformsEnabled) return;
+  for (let i = 0; i < 2; i++) {
+    const deck = decks[i];
+    const canvas = document.getElementById('pwfCanvas' + (i + 1));
+    if (!canvas) continue;
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.offsetWidth * 2;
+    canvas.height = canvas.offsetHeight * 2;
+    const mid = canvas.height / 2;
+    ctx.fillStyle = '#050508';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    if (!deck.buffer) continue;
+
+    const data = deck.buffer.getChannelData(0);
+    const duration = deck.buffer.duration;
+    const currentTime = deck.getCurrentTime();
+
+    // Show 16 seconds centered on playhead
+    const windowSec = 16;
+    let startSec = currentTime - windowSec / 2;
+    let endSec = currentTime + windowSec / 2;
+    if (startSec < 0) { endSec -= startSec; startSec = 0; }
+    if (endSec > duration) { startSec -= (endSec - duration); endSec = duration; startSec = Math.max(0, startSec); }
+
+    const startSample = Math.floor((startSec / duration) * data.length);
+    const endSample = Math.floor((endSec / duration) * data.length);
+    const sampleRange = endSample - startSample;
+
+    const color = i === 0 ? {r:0,g:170,b:255} : {r:255,g:136,b:0};
+
+    for (let x = 0; x < canvas.width; x++) {
+      const sStart = startSample + Math.floor(x * sampleRange / canvas.width);
+      const sEnd = startSample + Math.floor((x + 1) * sampleRange / canvas.width);
+      let min = 1, max = -1;
+      for (let j = sStart; j < sEnd && j < data.length; j++) {
+        if (data[j] < min) min = data[j];
+        if (data[j] > max) max = data[j];
+      }
+      const amp = Math.abs(max - min);
+      const alpha = 0.3 + amp * 0.7;
+      ctx.fillStyle = `rgba(${color.r},${color.g},${color.b},${alpha})`;
+      ctx.fillRect(x, mid + min * mid, 1, Math.max(1, (max - min) * mid));
+    }
+
+    // Beat grid
+    if (deck.bpm > 0) {
+      const beatDur = 60 / deck.bpm;
+      const firstBeat = Math.ceil(startSec / beatDur);
+      const lastBeat = Math.floor(endSec / beatDur);
+      for (let bt = firstBeat; bt <= lastBeat; bt++) {
+        const btTime = bt * beatDur;
+        const bx = ((btTime - startSec) / (endSec - startSec)) * canvas.width;
+        ctx.strokeStyle = bt % 4 === 0 ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.06)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(bx, 0); ctx.lineTo(bx, canvas.height); ctx.stroke();
+      }
+    }
+
+    // Playhead
+    const phX = ((currentTime - startSec) / (endSec - startSec)) * canvas.width;
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(phX, 0, 2, canvas.height);
+  }
+}
+
+// ==================== AUTO-MIX TRANSITIONS ====================
+let autoMixRunning = null;
+
+function autoMixTransition(type) {
+  if (autoMixRunning) { clearInterval(autoMixRunning); autoMixRunning = null; document.querySelectorAll('.automix-btn').forEach(b => b.classList.remove('running')); return; }
+
+  const cf = document.getElementById('crossfader');
+  const currentVal = parseFloat(cf.value);
+  const fromDeck = currentVal < 0.5 ? 0 : 1;
+  const toDeck = 1 - fromDeck;
+  const targetVal = toDeck === 1 ? 1 : 0;
+  const btn = event.target;
+  btn.classList.add('running');
+
+  if (type === 'cutSwap') {
+    // Instant cut
+    cf.value = targetVal;
+    cf.dispatchEvent(new Event('input'));
+    btn.classList.remove('running');
+    return;
+  }
+
+  if (type === 'echoOut') {
+    // Enable echo on outgoing deck, crossfade over 4 seconds
+    const echoBtn = document.querySelector(`.fx-btn[data-fx="echo"][data-ch="${fromDeck}"]`);
+    if (echoBtn && !echoBtn.classList.contains('active')) { echoBtn.click(); }
+    const duration = 4000;
+    const steps = 80;
+    const stepMs = duration / steps;
+    let step = 0;
+    autoMixRunning = setInterval(() => {
+      step++;
+      cf.value = currentVal + (targetVal - currentVal) * (step / steps);
+      cf.dispatchEvent(new Event('input'));
+      // Fade volume of outgoing deck
+      decks[fromDeck].gainNode.gain.value = 0.85 * (1 - step / steps);
+      if (step >= steps) {
+        clearInterval(autoMixRunning); autoMixRunning = null; btn.classList.remove('running');
+        // Disable echo
+        if (echoBtn && echoBtn.classList.contains('active')) echoBtn.click();
+        decks[fromDeck].gainNode.gain.value = 0.85;
+      }
+    }, stepMs);
+    return;
+  }
+
+  if (type === 'smooth16') {
+    // 16-bar blend assuming ~128 BPM (about 30 seconds)
+    const bpm = decks[toDeck].bpm || decks[fromDeck].bpm || 128;
+    const barDuration = (60 / bpm) * 4;
+    const duration = barDuration * 16 * 1000;
+    const steps = 200;
+    const stepMs = duration / steps;
+    let step = 0;
+    autoMixRunning = setInterval(() => {
+      step++;
+      const progress = step / steps;
+      // S-curve for smooth blend
+      const sCurve = progress * progress * (3 - 2 * progress);
+      cf.value = currentVal + (targetVal - currentVal) * sCurve;
+      cf.dispatchEvent(new Event('input'));
+      if (step >= steps) {
+        clearInterval(autoMixRunning); autoMixRunning = null; btn.classList.remove('running');
+      }
+    }, stepMs);
+    return;
+  }
+}
+
+// ==================== TRACK BPM DISPLAY IN BROWSER ====================
+// Cache of track BPMs from server
+const trackBPMCache = {};
+
+async function loadTrackBPMs() {
+  for (const t of allTracks) {
+    try {
+      const resp = await fetch('/api/tracks/' + encodeURIComponent(t.name) + '/info');
+      if (resp.ok) {
+        const info = await resp.json();
+        if (info.bpm) trackBPMCache[t.name] = info.bpm;
+      }
+    } catch {}
+  }
+  renderTrackList();
+}
+
+// Override renderTrackList to include BPM
+const _originalRenderTrackList = renderTrackList;
+renderTrackList = function() {
+  const sorted = [...allTracks];
+  if (currentSort === 'name') sorted.sort((a, b) => a.name.localeCompare(b.name));
+  else if (currentSort === 'size') sorted.sort((a, b) => b.size - a.size);
+  else sorted.sort((a, b) => b.mtime - a.mtime);
+  const list = document.getElementById('trackList');
+  const query = (document.getElementById('trackSearch').value || '').toLowerCase();
+  list.innerHTML = '';
+
+  // Get reference BPM from playing deck
+  let refBPM = null;
+  for (let i = 0; i < 2; i++) {
+    if (decks[i].playing && decks[i].bpm) { refBPM = decks[i].bpm; break; }
+  }
+  if (!refBPM) {
+    for (let i = 0; i < 2; i++) { if (decks[i].bpm) { refBPM = decks[i].bpm; break; } }
+  }
+
+  sorted.forEach(t => {
+    const cn = cleanTrackName(t.name);
+    if (query && !cn.toLowerCase().includes(query)) return;
+    const div = document.createElement('div');
+    div.className = 'track-item';
+    div.draggable = true;
+    div.dataset.trackName = encodeURIComponent(t.name);
+
+    // BPM indicator
+    const bpm = trackBPMCache[t.name];
+    let bpmHtml = '';
+    if (bpm) {
+      let colorClass = 'bpm-neutral';
+      if (refBPM) {
+        const diff = Math.abs(bpm - refBPM);
+        if (diff < 3) colorClass = 'bpm-green';
+        else if (diff < 8) colorClass = 'bpm-yellow';
+        else colorClass = 'bpm-red';
+      }
+      bpmHtml = `<span class="track-bpm ${colorClass}">${bpm.toFixed(0)}</span>`;
+    }
+
+    div.innerHTML = `<span class="name" title="${t.name}">${cn}</span>${bpmHtml}<div class="load-btns"><button class="load-btn d1" onclick="event.stopPropagation();loadToDeck(0,'${encodeURIComponent(t.name)}')">D1</button><button class="load-btn d2" onclick="event.stopPropagation();loadToDeck(1,'${encodeURIComponent(t.name)}')">D2</button></div>`;
+    div.ondblclick = () => { const freeDeck = !decks[0].buffer ? 0 : !decks[1].buffer ? 1 : 0; loadToDeck(freeDeck, encodeURIComponent(t.name)); };
+    div.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', encodeURIComponent(t.name)); e.dataTransfer.effectAllowed = 'copy'; });
+    list.appendChild(div);
+  });
+};
+
+// Load BPMs after tracks load (with delay to not slow initial load)
+setTimeout(() => { if (allTracks.length > 0) loadTrackBPMs(); }, 2000);
+
 // ==================== ANIMATION LOOP ====================
 function animate() {
   requestAnimationFrame(animate);
@@ -1674,6 +1990,7 @@ function animate() {
   }
   drawPlayhead();
   drawOverviewPlayhead();
+  drawParallelWaveforms();
   updateMeters();
   updateVUMeters();
   updatePhaseMeter();
