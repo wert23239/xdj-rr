@@ -29,17 +29,22 @@
 </div>
 <div class="topbar">
   <span class="logo">PIONEER XDJ-RR</span>
+  <div class="deck-status-dots">
+    <span class="deck-status-dot" id="deckDot1" data-tooltip="Deck 1 status"></span>
+    <span class="deck-status-dot" id="deckDot2" data-tooltip="Deck 2 status"></span>
+  </div>
+  <span class="master-clock" id="masterClock">0:00:00</span>
   <div class="topbar-controls">
-    <button class="rec-btn" id="recBtn" onclick="toggleRecording()"><span class="rec-dot"></span> REC</button>
-    <button class="rec-mix-btn" id="recMixBtn" onclick="toggleMixRecording()"><span class="rec-dot"></span> REC MIX</button>
-    <button class="perf-toggle" id="perfToggle" onclick="togglePerformanceMode()">PERFORMANCE</button>
-    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">☀️ LIGHT</button>
-    <button class="mini-toggle" id="miniToggle" onclick="toggleMiniMixer()">MINI</button>
-    <button class="swap-btn" id="swapBtn" onclick="swapDecks()" title="Swap decks">⇄ SWAP</button>
-    <button class="beep-toggle" id="beepToggle" onclick="toggleBeepWarning()">🔔 BEEP</button>
-    <button class="parallel-wf-btn" id="parallelWfBtn" onclick="toggleParallelWaveforms()" title="Parallel waveforms">∥ WF</button>
-    <button class="discover-btn" id="discoverBtn" onclick="toggleDiscover()" title="Song Discovery">🔍 DISCOVER</button>
-    <button class="help-btn" id="helpBtn" onclick="toggleShortcuts()" title="Keyboard Shortcuts">?</button>
+    <button class="rec-btn" id="recBtn" onclick="toggleRecording()" data-tooltip="Record tracklist"><span class="rec-dot"></span> REC</button>
+    <button class="rec-mix-btn" id="recMixBtn" onclick="toggleMixRecording()" data-tooltip="Record audio mix"><span class="rec-dot"></span> REC MIX</button>
+    <button class="perf-toggle" id="perfToggle" onclick="togglePerformanceMode()" data-tooltip="Performance mode — hide browser, expand waveforms">PERFORMANCE</button>
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" data-tooltip="Toggle light/dark theme">☀️ LIGHT</button>
+    <button class="mini-toggle" id="miniToggle" onclick="toggleMiniMixer()" data-tooltip="Minimal mixer layout">MINI</button>
+    <button class="swap-btn" id="swapBtn" onclick="swapDecks()" data-tooltip="Swap deck 1 and deck 2">⇄ SWAP</button>
+    <button class="beep-toggle" id="beepToggle" onclick="toggleBeepWarning()" data-tooltip="Beep warning when track ending">🔔 BEEP</button>
+    <button class="parallel-wf-btn" id="parallelWfBtn" onclick="toggleParallelWaveforms()" data-tooltip="Show parallel waveforms">∥ WF</button>
+    <button class="discover-btn" id="discoverBtn" onclick="toggleDiscover()" data-tooltip="Search & download songs">🔍 DISCOVER</button>
+    <button class="help-btn" id="helpBtn" onclick="toggleShortcuts()" data-tooltip="Keyboard shortcuts">?</button>
     <span id="status">Loading...</span>
   </div>
 </div>
@@ -97,6 +102,7 @@
         <div class="deck-header">
           <span class="deck-label">DECK 1</span>
           <span class="key-display" id="key1">KEY: —</span>
+          <span class="quality-badge" id="quality1" style="display:none"></span>
           <span class="bpm-display" id="bpm1">---.-</span>
         </div>
         <div class="vu-meter-row" id="vu1"></div>
@@ -106,6 +112,7 @@
             <div class="jog-markers" id="jogMarkers1"></div>
             <div class="jog-ring"></div>
             <div class="jog-dot"></div>
+            <div class="jog-art" id="jogArt1"><canvas id="jogArtCanvas1" width="100" height="100"></canvas></div>
             <div class="jog-inner"></div>
           </div>
         </div>
@@ -319,6 +326,7 @@
         <div class="deck-header">
           <span class="deck-label">DECK 2</span>
           <span class="key-display" id="key2">KEY: —</span>
+          <span class="quality-badge" id="quality2" style="display:none"></span>
           <span class="bpm-display" id="bpm2">---.-</span>
         </div>
         <div class="vu-meter-row" id="vu2"></div>
@@ -328,6 +336,7 @@
             <div class="jog-markers" id="jogMarkers2"></div>
             <div class="jog-ring"></div>
             <div class="jog-dot"></div>
+            <div class="jog-art" id="jogArt2"><canvas id="jogArtCanvas2" width="100" height="100"></canvas></div>
             <div class="jog-inner"></div>
           </div>
         </div>
@@ -458,6 +467,7 @@
       <select id="sessionSelect" onchange="loadSession(this.value)"><option value="">— select session —</option></select>
     </div>
   </div>
+  <div class="transition-timeline" id="transitionTimeline"></div>
   <div id="tracklistEntries"></div>
 </div>
 

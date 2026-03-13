@@ -446,6 +446,142 @@ body.mini-mixer .deck .transport button{padding:6px 10px;font-size:10px}
 /* Beep */
 .beep-toggle.active{border-color:#f33;color:#f33;background:linear-gradient(180deg,#3a0a0a 0%,#2a0505 100%);box-shadow:0 0 6px rgba(255,51,51,0.2)}
 
+/* ============ Animated Background ============ */
+@keyframes bg-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.decks-area {
+  background: linear-gradient(270deg, #0d0d0f, #0a0c14, #0f0a10, #0a0d0f, #0d0d0f);
+  background-size: 800% 800%;
+  animation: bg-shift 60s ease infinite;
+}
+
+/* ============ Master Clock ============ */
+.master-clock {
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  color: #e8a030;
+  letter-spacing: 1px;
+  text-shadow: 0 0 6px rgba(232,160,48,0.3);
+  padding: 0 8px;
+}
+
+/* ============ Deck Status Dots ============ */
+.deck-status-dots {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 0 8px;
+}
+.deck-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #444;
+  transition: background 0.3s;
+  box-shadow: none;
+}
+.deck-status-dot.loaded-d1 { background: var(--deck1); box-shadow: 0 0 4px var(--deck1); }
+.deck-status-dot.loaded-d2 { background: var(--deck2); box-shadow: 0 0 4px var(--deck2); }
+.deck-status-dot.playing-d1 { background: var(--deck1); animation: dot-blink-d1 0.6s infinite; }
+.deck-status-dot.playing-d2 { background: var(--deck2); animation: dot-blink-d2 0.6s infinite; }
+.deck-status-dot.ending { background: #f33 !important; animation: dot-blink-red 0.4s infinite !important; box-shadow: 0 0 6px #f33 !important; }
+@keyframes dot-blink-d1 { 0%,100%{ opacity:1; box-shadow:0 0 6px var(--deck1); } 50%{ opacity:0.3; box-shadow:none; } }
+@keyframes dot-blink-d2 { 0%,100%{ opacity:1; box-shadow:0 0 6px var(--deck2); } 50%{ opacity:0.3; box-shadow:none; } }
+@keyframes dot-blink-red { 0%,100%{ opacity:1; } 50%{ opacity:0.2; } }
+
+/* ============ Procedural Album Art ============ */
+.jog-art {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.jog-art canvas {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+/* ============ Sound Quality Indicator ============ */
+.quality-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: #1a1a1e;
+  border: 1px solid #3a3a40;
+  color: #888;
+  font-family: 'Courier New', monospace;
+  margin-left: 4px;
+}
+.quality-badge.wav { color: #0c6; border-color: #1a4a2a; }
+.quality-badge.flac { color: #0af; border-color: #1a3a55; }
+.quality-badge.mp3 { color: #cc0; border-color: #4a4a1a; }
+.quality-badge.ogg { color: #f80; border-color: #553a1a; }
+
+/* ============ Transition Timeline ============ */
+.transition-timeline {
+  display: flex;
+  height: 24px;
+  background: #111114;
+  border-top: 1px solid #2a2a2e;
+  overflow: hidden;
+  position: relative;
+}
+.timeline-block {
+  height: 100%;
+  min-width: 2px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 7px;
+  color: rgba(255,255,255,0.5);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding: 0 2px;
+}
+.timeline-block.d1 { background: rgba(0,170,255,0.25); border-right: 1px solid rgba(0,170,255,0.4); }
+.timeline-block.d2 { background: rgba(255,136,0,0.25); border-right: 1px solid rgba(255,136,0,0.4); }
+.timeline-block.transition { background: linear-gradient(90deg, rgba(0,170,255,0.3), rgba(255,136,0,0.3)); min-width: 4px; border-left: 1px solid #ff0; border-right: 1px solid #ff0; }
+
+/* ============ Tooltips ============ */
+[data-tooltip] {
+  position: relative;
+}
+[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #222226;
+  color: #ccc;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  white-space: nowrap;
+  z-index: 1000;
+  pointer-events: none;
+  border: 1px solid #3a3a40;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+/* ============ Smooth Number Animations ============ */
+.bpm-display, .tempo-val, .master-val, .gain-val {
+  transition: color 0.2s;
+}
+
 /* ============ Light Theme ============ */
 body.light-theme{background:#e8e8e8;color:#333}
 body.light-theme .topbar{background:linear-gradient(180deg,#eee 0%,#ddd 100%);border-color:#ccc;color:#666}

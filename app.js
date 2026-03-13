@@ -2179,6 +2179,248 @@ function applyFxWetDry(ch) {
   if (deck.fx.bitcrush) deck.bitcrushWet.gain.value = wet;
 }
 
+// ==================== MASTER CLOCK ====================
+let masterClockStart = null;
+let masterClockInterval = null;
+
+function startMasterClock() {
+  if (masterClockStart !== null) return;
+  masterClockStart = Date.now();
+  masterClockInterval = setInterval(updateMasterClock, 1000);
+}
+
+function updateMasterClock() {
+  if (masterClockStart === null) return;
+  const elapsed = Date.now() - masterClockStart;
+  const h = Math.floor(elapsed / 3600000);
+  const m = Math.floor((elapsed % 3600000) / 60000);
+  const s = Math.floor((elapsed % 60000) / 1000);
+  document.getElementById('masterClock').textContent =
+    h + ':' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+// Hook into play to start master clock
+const _origPlay = Deck.prototype.play;
+Deck.prototype.play = function() {
+  startMasterClock();
+  return _origPlay.call(this);
+};
+
+// ==================== DECK STATUS DOTS ====================
+function updateDeckStatusDots() {
+  for (let i = 0; i < 2; i++) {
+    const dot = document.getElementById('deckDot' + (i + 1));
+    const deck = decks[i];
+    const hasTrack = deck.buffer || deck._streamAudio;
+    const remaining = hasTrack ? deck.getDuration() - deck.getCurrentTime() : Infinity;
+    dot.className = 'deck-status-dot';
+    if (!hasTrack) {
+      // gray (default)
+    } else if (deck.playing && remaining < 30) {
+      dot.classList.add('ending');
+    } else if (deck.playing) {
+      dot.classList.add(i === 0 ? 'playing-d1' : 'playing-d2');
+    } else {
+      dot.classList.add(i === 0 ? 'loaded-d1' : 'loaded-d2');
+    }
+  }
+}
+
+// ==================== PROCEDURAL ALBUM ART ====================
+function generateProceduralArt(deckId) {
+  const deck = decks[deckId];
+  const canvas = document.getElementById('jogArtCanvas' + (deckId + 1));
+  if (!canvas || !deck.buffer) return;
+  const ctx = canvas.getContext('2d');
+  const size = 100;
+  canvas.width = size;
+  canvas.height = size;
+  const data = deck.buffer.getChannelData(0);
+  const sr = deck.buffer.sampleRate;
+  // Generate a unique pattern from waveform data
+  // Sample 64 points spread across the track
+  const samples = 64;
+  const step = Math.floor(data.length / samples);
+  const values = [];
+  for (let i = 0; i < samples; i++) {
+    const idx = i * step;
+    values.push(Math.abs(data[Math.min(idx, data.length - 1)]));
+  }
+  // Create a seed from the values
+  let seed = 0;
+  for (let i = 0; i < values.length; i++) seed += values[i] * (i + 1) * 1000;
+  seed = Math.floor(seed) % 10000;
+  // Pseudo-random from seed
+  const rng = (function(s) { return function() { s = (s * 16807 + 0) % 2147483647; return s / 2147483647; }; })(seed || 1);
+  // Draw concentric pattern
+  const cx = size / 2, cy = size / 2;
+  // Background
+  ctx.fillStyle = '#111';
+  ctx.fillRect(0, 0, size, size);
+  // Radial segments
+  const numRings = 6;
+  const numSegs = 12;
+  for (let r = numRings; r >= 0; r--) {
+    const radius = (r / numRings) * (size / 2 - 2);
+    const nextRadius = ((r + 1) / numRings) * (size / 2 - 2);
+    for (let s = 0; s < numSegs; s++) {
+      const angle1 = (s / numSegs) * Math.PI * 2;
+      const angle2 = ((s + 1) / numSegs) * Math.PI * 2;
+      const vi = (r * numSegs + s) % values.length;
+      const intensity = values[vi];
+      const hue = (rng() * 360 + seed) % 360;
+      const sat = 50 + intensity * 50;
+      const light = 15 + intensity * 40;
+      ctx.fillStyle = `hsl(${hue}, ${sat}%, ${light}%)`;
+      ctx.beginPath();
+      ctx.arc(cx, cy, nextRadius, angle1, angle2);
+      ctx.arc(cx, cy, radius, angle2, angle1, true);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+  // Center hole
+  ctx.beginPath();
+  ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+  ctx.fillStyle = '#222';
+  ctx.fill();
+  document.getElementById('jogArt' + (deckId + 1)).style.display = '';
+}
+
+// ==================== SOUND QUALITY INDICATOR ====================
+function updateQualityBadge(deckId) {
+  const deck = decks[deckId];
+  const badge = document.getElementById('quality' + (deckId + 1));
+  if (!deck._lastUrl) { badge.style.display = 'none'; return; }
+  const url = deck._lastUrl;
+  const ext = url.split('.').pop().split('?')[0].toLowerCase();
+  const formatMap = { mp3: 'MP3', wav: 'WAV', flac: 'FLAC', ogg: 'OGG', m4a: 'AAC', aac: 'AAC', opus: 'OPUS', webm: 'WEBM' };
+  const format = formatMap[ext] || ext.toUpperCase();
+  badge.textContent = format;
+  badge.className = 'quality-badge ' + (ext === 'wav' ? 'wav' : ext === 'flac' ? 'flac' : ext === 'mp3' ? 'mp3' : 'ogg');
+  badge.style.display = '';
+}
+
+// Hook quality badge + art into loadTrack
+const _origLoadTrack = Deck.prototype.loadTrack;
+Deck.prototype.loadTrack = async function(url, name) {
+  const result = await _origLoadTrack.call(this, url, name);
+  updateQualityBadge(this.id);
+  // Generate art after buffer is ready (delay slightly for background decode)
+  const self = this;
+  const checkArt = setInterval(() => {
+    if (self.buffer) { generateProceduralArt(self.id); clearInterval(checkArt); }
+  }, 500);
+  setTimeout(() => clearInterval(checkArt), 15000);
+  return result;
+};
+
+// ==================== SMOOTH NUMBER ANIMATION ====================
+const animatedValues = { bpm: [0, 0] };
+
+function animateNumber(elementId, targetVal, decimals = 1) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  const current = parseFloat(el.textContent) || 0;
+  if (Math.abs(current - targetVal) < 0.05) {
+    el.textContent = targetVal.toFixed(decimals);
+    return;
+  }
+  const diff = targetVal - current;
+  const step = diff * 0.3;
+  const next = current + step;
+  el.textContent = next.toFixed(decimals);
+}
+
+// ==================== TRANSITION TIMELINE ====================
+let timelineEntries = [];
+
+function addTimelineEntry(deckIdx, trackName) {
+  if (!isRecording) return;
+  timelineEntries.push({ deck: deckIdx, name: trackName, time: Date.now() });
+  renderTransitionTimeline();
+}
+
+function renderTransitionTimeline() {
+  const container = document.getElementById('transitionTimeline');
+  if (!container || timelineEntries.length === 0) return;
+  const totalDuration = Date.now() - timelineEntries[0].time;
+  if (totalDuration < 1000) return;
+  container.innerHTML = '';
+  for (let i = 0; i < timelineEntries.length; i++) {
+    const entry = timelineEntries[i];
+    const nextTime = (i + 1 < timelineEntries.length) ? timelineEntries[i + 1].time : Date.now();
+    const duration = nextTime - entry.time;
+    const pct = (duration / totalDuration) * 100;
+    const block = document.createElement('div');
+    block.className = 'timeline-block ' + (entry.deck === 0 ? 'd1' : 'd2');
+    block.style.width = Math.max(pct, 0.5) + '%';
+    block.textContent = entry.name.substring(0, 20);
+    block.title = entry.name;
+    container.appendChild(block);
+  }
+}
+
+// Hook timeline into autoLogTrack
+const _origAutoLogTrack = autoLogTrack;
+autoLogTrack = function(deckIdx) {
+  const deck = decks[deckIdx];
+  if (deck.trackName) addTimelineEntry(deckIdx, deck.trackName);
+  return _origAutoLogTrack(deckIdx);
+};
+
+// ==================== TOOLTIPS FOR TRANSPORT BUTTONS ====================
+function addTooltips() {
+  const tooltips = {
+    'play1': 'Play/Pause Deck 1 (Q)', 'play2': 'Play/Pause Deck 2 (P)',
+    'cue1': 'Return to cue point Deck 1 (W)', 'cue2': 'Return to cue point Deck 2 (O)',
+    'sync1': 'Sync BPM to Deck 2 (E)', 'sync2': 'Sync BPM to Deck 1 (I)',
+    'vinyl1': 'Vinyl brake effect', 'vinyl2': 'Vinyl brake effect',
+    'reverse1': 'Hold for reverse playback', 'reverse2': 'Hold for reverse playback',
+    'headphone1': 'Headphone cue Deck 1', 'headphone2': 'Headphone cue Deck 2',
+    'slip1': 'Slip mode — position continues while scratching', 'slip2': 'Slip mode — position continues while scratching',
+    'quantize1': 'Quantize — snap to beat grid', 'quantize2': 'Quantize — snap to beat grid',
+    'logBtn1': 'Log current track to tracklist', 'logBtn2': 'Log current track to tracklist',
+    'tap1': 'Tap to set BPM manually', 'tap2': 'Tap to set BPM manually',
+    'autoGainBtn': 'Auto-adjust gain to match loudness',
+    'noiseToggle': 'Toggle white noise',
+    'masterVol': 'Master volume output',
+    'crossfader': 'Crossfade between Deck 1 and Deck 2',
+  };
+  for (const [id, tip] of Object.entries(tooltips)) {
+    const el = document.getElementById(id);
+    if (el) el.setAttribute('data-tooltip', tip);
+  }
+  // Sampler pads
+  document.querySelectorAll('.sampler-pad').forEach(p => p.setAttribute('data-tooltip', 'Trigger sample'));
+  // Hot cues
+  document.querySelectorAll('.hotcue-btn').forEach(p => p.setAttribute('data-tooltip', 'Set/jump to hot cue (Shift+click to delete)'));
+  // Loop buttons
+  document.querySelectorAll('.loop-btn').forEach(p => p.setAttribute('data-tooltip', 'Toggle ' + p.textContent + ' beat loop'));
+  // Beat jump
+  document.querySelectorAll('.beat-jump-btn').forEach(p => p.setAttribute('data-tooltip', 'Jump ' + p.textContent + ' beats'));
+  // Nudge
+  document.querySelectorAll('.nudge-btn').forEach(p => p.setAttribute('data-tooltip', 'Nudge tempo'));
+  // Slicer
+  document.querySelectorAll('.slicer-pad').forEach(p => p.setAttribute('data-tooltip', 'Slicer pad — hold to loop slice'));
+  // Roll
+  document.querySelectorAll('.roll-pad').forEach(p => p.setAttribute('data-tooltip', 'Beat roll — hold to activate'));
+  // FX
+  document.querySelectorAll('.fx-btn').forEach(p => p.setAttribute('data-tooltip', 'Toggle ' + p.textContent + ' effect'));
+  // Auto-crossfade
+  const axl = document.getElementById('autoXfadeL');
+  const axr = document.getElementById('autoXfadeR');
+  if (axl) axl.setAttribute('data-tooltip', 'Auto-crossfade to Deck 1');
+  if (axr) axr.setAttribute('data-tooltip', 'Auto-crossfade to Deck 2');
+  // Automix
+  document.querySelectorAll('.automix-btn').forEach(p => p.setAttribute('data-tooltip', p.title || 'Auto-mix transition'));
+  // EQ kills
+  document.querySelectorAll('.eq-kill-btn').forEach(p => p.setAttribute('data-tooltip', 'Kill ' + p.dataset.band.toUpperCase() + ' frequencies'));
+  // Crossfader curve
+  document.querySelectorAll('.xfade-curve-btn').forEach(p => p.setAttribute('data-tooltip', p.textContent + ' crossfader curve'));
+}
+addTooltips();
+
 // ==================== ANIMATION LOOP ====================
 function animate() {
   requestAnimationFrame(animate);
@@ -2195,6 +2437,8 @@ function animate() {
     } else {
       document.getElementById('wfTime' + (i + 1)).textContent = formatTime(t);
     }
+    // Smooth BPM animation
+    if (decks[i].bpm) animateNumber('bpm' + (i + 1), decks[i].bpm, 1);
   }
   drawPlayhead();
   drawOverviewPlayhead();
@@ -2208,7 +2452,10 @@ function animate() {
   updateXfadeColor();
   checkLoops();
   updateUI();
+  updateDeckStatusDots();
   for (let i = 0; i < 2; i++) updateMarquee(i);
+  // Update timeline periodically
+  if (isRecording && timelineEntries.length > 0 && performance.now() % 60 < 17) renderTransitionTimeline();
 }
 animate();
 
