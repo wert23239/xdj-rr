@@ -1061,10 +1061,10 @@ body{transition:background 0.3s ease,color 0.3s ease}
   .sampler-pad{width:44px;height:30px;font-size:8px}
 }
 /* Deck channel faders */
-.deck-ch-fader{position:absolute;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;z-index:5;padding:8px 4px;background:rgba(15,15,18,0.9);border-radius:6px}
-.deck-ch-fader-right{right:-2px}
-.deck-ch-fader-left{left:-2px}
-.vol-fader-vertical{writing-mode:vertical-lr;direction:rtl;width:20px;height:100px;-webkit-appearance:slider-vertical;appearance:slider-vertical;cursor:ns-resize}
+.deck-ch-fader{position:absolute;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;z-index:5;padding:10px 8px;background:linear-gradient(180deg,#1a1a1e 0%,#131315 100%);border-radius:8px;border:1px solid #2a2a2e;box-shadow:0 2px 8px rgba(0,0,0,0.4)}
+.deck-ch-fader-right{right:8px}
+.deck-ch-fader-left{left:8px}
+.vol-fader-vertical{writing-mode:vertical-lr;direction:rtl;width:20px;height:120px;-webkit-appearance:slider-vertical;appearance:slider-vertical;cursor:ns-resize}
 
 @media (pointer: coarse) {
   .track-item .load-btns{opacity:1}
