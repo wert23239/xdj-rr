@@ -1056,8 +1056,7 @@ function knobMove(y) {
   applyKnob(activeKnob, angle);
 }
 
-document.addEventListener('mousemove', e => knobMove(e.clientY));
-document.addEventListener('touchmove', e => { if (activeKnob) knobMove(e.touches[0].clientY); }, {passive: true});
+// Knob mouse/touch handled in enhanced jog section below
 document.addEventListener('mouseup', () => { activeKnob = null; });
 document.addEventListener('touchend', () => { activeKnob = null; });
 
@@ -1129,24 +1128,7 @@ function jogMove(y) {
   }, 100);
 }
 
-document.addEventListener('mousemove', e => jogMove(e.clientY));
-document.addEventListener('touchmove', e => { if (jogDragging !== null) jogMove(e.touches[0].clientY); }, {passive: true});
-
-function jogRelease() {
-  if (jogDragging !== null) {
-    const deck = decks[jogDragging];
-    // Slip mode restore
-    if (deck.slipActive && deck.slipMode) {
-      const elapsed = (actx.currentTime - deck.slipStartTime) * deck.playbackRate;
-      deck.seekTo(deck.slipPosition + elapsed);
-      deck.slipActive = false;
-    }
-    document.getElementById('jog' + (jogDragging + 1)).style.cursor = 'grab';
-    jogDragging = null;
-  }
-}
-document.addEventListener('mouseup', jogRelease);
-document.addEventListener('touchend', jogRelease);
+// Jog mouse/touch handlers moved to enhanced jog section below
 
 // ==================== FX BUTTON ====================
 function toggleFX(btn) {
@@ -3633,8 +3615,8 @@ for (let i = 0; i < 8; i++) {
 function animate() {
   requestAnimationFrame(animate);
   for (let i = 0; i < 2; i++) {
-    if (decks[i].playing) jogAngles[i] += 1.5 * decks[i].playbackRate;
-    document.getElementById('jog' + (i + 1)).style.transform = `rotate(${jogAngles[i]}deg)`;
+    if (decks[i].playing && jogState.dragging !== i) jogAngles[i] += 1.5 * decks[i].playbackRate;
+    document.getElementById('jog' + (i + 1)).style.transform = `rotateX(15deg) rotate(${jogAngles[i]}deg)`;
   }
   for (let i = 0; i < 2; i++) {
     const t = decks[i].getCurrentTime();
@@ -4135,3 +4117,212 @@ updateHarmonicDisplay = function() {
   deckKeys[0] = saved[0];
   deckKeys[1] = saved[1];
 };
+
+// ==================== COLLAPSIBLE PANELS ====================
+function toggleCollapsible(headerEl) {
+  const panel = headerEl.closest('.collapsible-panel');
+  if (panel) panel.classList.toggle('collapsed');
+}
+
+// ==================== ENHANCED JOG WHEEL UX ====================
+// Add platter dots for texture
+(function initJogPlatterDots() {
+  for (let d = 1; d <= 2; d++) {
+    const jog = document.getElementById('jog' + d);
+    if (!jog) continue;
+    const dotsContainer = document.createElement('div');
+    dotsContainer.className = 'jog-platter-dots';
+    // Add dots in concentric rings
+    const rings = [30, 45, 58, 68];
+    const dotCounts = [8, 12, 16, 20];
+    for (let r = 0; r < rings.length; r++) {
+      const radius = rings[r];
+      const count = dotCounts[r];
+      for (let i = 0; i < count; i++) {
+        const angle = (i / count) * Math.PI * 2;
+        const dot = document.createElement('div');
+        dot.className = 'jog-platter-dot';
+        const x = Math.cos(angle) * radius;
+        const y = Math.sin(angle) * radius;
+        dot.style.transform = `translate(${x}px, ${y}px)`;
+        dotsContainer.appendChild(dot);
+      }
+    }
+    jog.appendChild(dotsContainer);
+    // Add mode indicator
+    const modeIndicator = document.createElement('div');
+    modeIndicator.className = 'jog-mode-indicator bend';
+    modeIndicator.id = 'jogMode' + d;
+    modeIndicator.textContent = 'BEND';
+    jog.parentElement.appendChild(modeIndicator);
+  }
+})();
+
+// Scratch mode state
+const jogScratchMode = [false, false];
+
+// Enhanced jog wheel with circular drag detection
+const jogState = {
+  dragging: null,
+  lastAngle: 0,
+  lastX: 0,
+  lastY: 0,
+  totalRotation: [0, 0],
+  velocity: 0,
+  lastMoveTime: 0
+};
+
+function getJogAngle(jogEl, clientX, clientY) {
+  const rect = jogEl.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  return Math.atan2(clientY - cy, clientX - cx);
+}
+
+// Replace existing jog handlers with enhanced circular detection
+for (let i = 0; i < 2; i++) {
+  const jog = document.getElementById('jog' + (i + 1));
+  const deckIdx = i;
+
+  // Remove old handlers by cloning
+  const newJog = jog.cloneNode(true);
+  jog.parentNode.replaceChild(newJog, jog);
+
+  const enhancedStartHandler = (e) => {
+    const clientX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+    const clientY = e.clientY || (e.touches && e.touches[0].clientY) || 0;
+    jogState.dragging = deckIdx;
+    jogState.lastAngle = getJogAngle(newJog, clientX, clientY);
+    jogState.lastX = clientX;
+    jogState.lastY = clientY;
+    jogState.lastMoveTime = performance.now();
+    jogState.velocity = 0;
+    newJog.classList.add('scratching');
+    // Slip mode save
+    if (decks[deckIdx].slipMode && decks[deckIdx].playing) {
+      decks[deckIdx].slipPosition = decks[deckIdx].getCurrentTime();
+      decks[deckIdx].slipStartTime = actx.currentTime;
+      decks[deckIdx].slipActive = true;
+    }
+    e.preventDefault();
+  };
+  newJog.addEventListener('mousedown', enhancedStartHandler);
+  newJog.addEventListener('touchstart', enhancedStartHandler, {passive: false});
+
+  // Double-click to toggle scratch/bend mode
+  newJog.addEventListener('dblclick', () => {
+    jogScratchMode[deckIdx] = !jogScratchMode[deckIdx];
+    const indicator = document.getElementById('jogMode' + (deckIdx + 1));
+    if (indicator) {
+      indicator.textContent = jogScratchMode[deckIdx] ? 'SCRATCH' : 'BEND';
+      indicator.className = 'jog-mode-indicator ' + (jogScratchMode[deckIdx] ? 'scratch' : 'bend');
+    }
+  });
+}
+
+// Enhanced jog move with circular motion detection
+function enhancedJogMove(clientX, clientY) {
+  if (jogState.dragging === null) return;
+  const deckIdx = jogState.dragging;
+  const jogEl = document.getElementById('jog' + (deckIdx + 1));
+  const deck = decks[deckIdx];
+
+  const currentAngle = getJogAngle(jogEl, clientX, clientY);
+  let angleDelta = currentAngle - jogState.lastAngle;
+
+  // Handle wrap-around
+  if (angleDelta > Math.PI) angleDelta -= Math.PI * 2;
+  if (angleDelta < -Math.PI) angleDelta += Math.PI * 2;
+
+  jogState.lastAngle = currentAngle;
+  jogState.lastX = clientX;
+  jogState.lastY = clientY;
+
+  const now = performance.now();
+  const dt = now - jogState.lastMoveTime;
+  jogState.lastMoveTime = now;
+
+  // Convert angle delta to rotation degrees for visual feedback
+  const rotDegrees = angleDelta * (180 / Math.PI);
+  jogAngles[deckIdx] += rotDegrees;
+
+  // Calculate velocity (radians per ms)
+  const velocity = dt > 0 ? angleDelta / dt : 0;
+  jogState.velocity = velocity;
+
+  if (!deck.buffer && !deck._streamAudio) return;
+
+  if (!deck.playing) {
+    // When not playing: scrub through track
+    const scrubAmount = angleDelta * 0.5; // seconds per radian
+    deck.offset = Math.max(0, Math.min(deck.offset + scrubAmount, deck.getDuration()));
+  } else if (jogScratchMode[deckIdx]) {
+    // Scratch mode: directly manipulate playback position
+    const scratchAmount = angleDelta * 0.3;
+    if (deck._streamAudio) {
+      deck._streamAudio.currentTime = Math.max(0, deck._streamAudio.currentTime + scratchAmount);
+    } else if (deck.source) {
+      deck.startTime -= scratchAmount / deck.playbackRate;
+    }
+  } else {
+    // Pitch bend mode: temporarily adjust speed based on rotation velocity
+    const speedMod = velocity * 300; // scale factor
+    const targetRate = Math.max(0, deck.playbackRate + speedMod);
+    if (deck._streamAudio) {
+      deck._streamAudio.playbackRate = targetRate;
+    } else if (deck.source) {
+      deck.source.playbackRate.value = targetRate;
+    }
+    // Restore after release via jogScratchRestore
+    if (jogScratchRestore[deckIdx]) clearTimeout(jogScratchRestore[deckIdx]);
+    jogScratchRestore[deckIdx] = setTimeout(() => {
+      if (deck._streamAudio) deck._streamAudio.playbackRate = deck.playbackRate;
+      else if (deck.source) deck.source.playbackRate.value = deck.playbackRate;
+    }, 100);
+  }
+}
+
+// Override global mousemove/touchmove for enhanced jog
+document.addEventListener('mousemove', e => {
+  knobMove(e.clientY);
+  if (jogState.dragging !== null) enhancedJogMove(e.clientX, e.clientY);
+});
+document.addEventListener('touchmove', e => {
+  if (activeKnob) knobMove(e.touches[0].clientY);
+  if (jogState.dragging !== null) enhancedJogMove(e.touches[0].clientX, e.touches[0].clientY);
+}, {passive: true});
+
+// Enhanced jog release
+function enhancedJogRelease() {
+  if (jogState.dragging !== null) {
+    const deckIdx = jogState.dragging;
+    const deck = decks[deckIdx];
+    const jogEl = document.getElementById('jog' + (deckIdx + 1));
+    jogEl.classList.remove('scratching');
+
+    // Restore playback rate
+    if (deck.playing) {
+      if (deck._streamAudio) deck._streamAudio.playbackRate = deck.playbackRate;
+      else if (deck.source) deck.source.playbackRate.value = deck.playbackRate;
+    }
+
+    // Slip mode restore
+    if (deck.slipActive && deck.slipMode) {
+      const elapsed = (actx.currentTime - deck.slipStartTime) * deck.playbackRate;
+      deck.seekTo(deck.slipPosition + elapsed);
+      deck.slipActive = false;
+    }
+
+    // Stop vinyl scratch sound
+    if (vinylScratchSources[deckIdx]) {
+      vinylScratchGains[deckIdx].gain.setTargetAtTime(0, actx.currentTime, 0.05);
+      const src = vinylScratchSources[deckIdx];
+      setTimeout(() => { try { src.stop(); } catch(e) {} }, 100);
+      vinylScratchSources[deckIdx] = null;
+    }
+
+    jogState.dragging = null;
+  }
+}
+document.addEventListener('mouseup', enhancedJogRelease);
+document.addEventListener('touchend', enhancedJogRelease);

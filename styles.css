@@ -924,7 +924,7 @@ body.accent-minimal .topbar .logo{color:#666}
 
 /* ============ 3D Jog Wheel ============ */
 .jog-container{perspective:400px}
-.jog{transform:rotateX(15deg);transform-style:preserve-3d}
+.jog{transform-style:preserve-3d}
 
 /* ============ Glow Effects on Playing Decks ============ */
 .deck.playing-glow.d1 .waveform-container,.deck.playing-glow.d1 .jog-container .jog{filter:drop-shadow(0 0 8px rgba(0,170,255,0.25))}
@@ -1013,6 +1013,36 @@ body{transition:background 0.3s ease,color 0.3s ease}
 .mobile-toolbar{display:none}
 .mobile-hidden{display:none !important}
 .mobile-backdrop{display:none}
+
+/* ============ Collapsible Panels ============ */
+.collapsible-header{cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;transition:background .2s}
+.collapsible-header:hover{background:rgba(255,255,255,0.03)}
+.collapsible-chevron{font-size:10px;color:#555;transition:transform .3s ease;display:inline-block;margin-left:6px}
+.collapsible-panel.collapsed .collapsible-chevron{transform:rotate(-90deg)}
+.collapsible-panel .collapsible-body{max-height:500px;overflow:hidden;transition:max-height .35s ease}
+.collapsible-panel.collapsed .collapsible-body{max-height:0}
+
+/* ============ Browser Tabs (Top 100) ============ */
+.browser-tabs{display:flex;gap:2px;width:100%}
+.browser-tab{flex:1;padding:6px 8px;border:none;background:transparent;color:#555;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.browser-tab.active{color:#0af;border-bottom-color:#0af}
+.browser-tab:hover{color:#888}
+
+/* Top 100 list items */
+.top100-item{gap:6px;align-items:center}
+.top100-rank{font-size:10px;font-weight:700;color:#555;min-width:22px;text-align:right;font-family:'Courier New',monospace}
+.top100-info{display:flex;flex-direction:column;flex:1;min-width:0;overflow:hidden}
+.top100-title{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#ccc}
+.top100-artist{font-size:9px;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top100-meta{font-size:9px;color:#e8a030;font-family:'Courier New',monospace;white-space:nowrap;min-width:65px;text-align:right}
+
+/* ============ Enhanced Jog Wheel ============ */
+.jog-platter-dots{position:absolute;inset:0;border-radius:50%;pointer-events:none}
+.jog-platter-dot{position:absolute;width:3px;height:3px;background:rgba(255,255,255,0.08);border-radius:50%;top:50%;left:50%}
+.jog-mode-indicator{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;opacity:.6;white-space:nowrap;pointer-events:none;transition:color .2s}
+.jog-mode-indicator.scratch{color:#f33}
+.jog-mode-indicator.bend{color:#0c6}
+.jog.scratching{cursor:grabbing !important;box-shadow:0 4px 20px rgba(0,0,0,.6),0 0 40px rgba(255,51,51,.2),inset 0 0 40px rgba(0,0,0,.4) !important}
 
 /* ============ Mobile ============ */
 @media (max-width: 1300px) {

@@ -526,15 +526,18 @@
 </div>
 
 <!-- TRACK HISTORY (inline) -->
-<div class="history-panel" id="historyPanel">
-  <div class="history-header"><label>🕐 Track History (last 10)</label></div>
-  <div id="historyEntries"></div>
+<div class="history-panel collapsible-panel collapsed" id="historyPanel">
+  <div class="history-header collapsible-header" onclick="toggleCollapsible(this)"><label>🕐 Track History (last 10)</label><span class="collapsible-chevron">▼</span></div>
+  <div class="collapsible-body" id="historyEntries"></div>
 </div>
 
-<div class="playlist-panel" id="playlistPanel">
-  <div class="playlist-header">
+<div class="playlist-panel collapsible-panel collapsed" id="playlistPanel">
+  <div class="playlist-header collapsible-header" onclick="toggleCollapsible(this)">
     <label>🎵 Playlists</label>
-    <div class="playlist-controls">
+    <div style="display:flex;align-items:center;gap:4px"><span class="collapsible-chevron">▼</span></div>
+  </div>
+  <div class="collapsible-body">
+    <div style="display:flex;gap:4px;align-items:center;padding:4px 12px;border-bottom:1px solid #1a1a1e;flex-wrap:wrap">
       <select id="playlistSelect" onchange="loadPlaylist(this.value)"><option value="">— select playlist —</option></select>
       <input type="text" id="newPlaylistName" placeholder="New playlist name" style="width:120px">
       <button onclick="createPlaylist()">+ New</button>
@@ -542,20 +545,23 @@
       <button onclick="addTrackToPlaylist(1)" title="Add Deck 2 track">+D2</button>
       <button onclick="deleteCurrentPlaylist()" title="Delete playlist" style="color:#f33">🗑</button>
     </div>
+    <div id="playlistEntries"></div>
   </div>
-  <div id="playlistEntries"></div>
 </div>
 
-<div class="tracklist-panel" id="tracklistPanel">
-  <div class="tracklist-header">
+<div class="tracklist-panel collapsible-panel collapsed" id="tracklistPanel">
+  <div class="tracklist-header collapsible-header" onclick="toggleCollapsible(this)">
     <label>📋 Tracklist</label>
     <div style="display:flex;gap:6px;align-items:center">
-      <button class="export-btn" id="exportBtn" onclick="exportTracklist()" title="Export tracklist">📥 Export</button>
-      <select id="sessionSelect" onchange="loadSession(this.value)"><option value="">— select session —</option></select>
+      <button class="export-btn" id="exportBtn" onclick="event.stopPropagation();exportTracklist()" title="Export tracklist">📥 Export</button>
+      <select id="sessionSelect" onchange="loadSession(this.value)" onclick="event.stopPropagation()"><option value="">— select session —</option></select>
+      <span class="collapsible-chevron">▼</span>
     </div>
   </div>
-  <div class="transition-timeline" id="transitionTimeline"></div>
-  <div id="tracklistEntries"></div>
+  <div class="collapsible-body">
+    <div class="transition-timeline" id="transitionTimeline"></div>
+    <div id="tracklistEntries"></div>
+  </div>
 </div>
 
 <!-- DISCOVER PANEL -->
@@ -583,6 +589,7 @@
 <script src="/tracklist.js"></script>
 <script src="/sampler.js"></script>
 <script src="/app.js"></script>
+<script src="/top100.js"></script>
 <script src="/discover.js" defer></script>
 <script src="/midi.js" defer></script>
 <script src="/mobile.js" defer></script>
