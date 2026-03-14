@@ -1060,6 +1060,12 @@ body{transition:background 0.3s ease,color 0.3s ease}
   .fx-btn{padding:3px 6px;font-size:8px}
   .sampler-pad{width:44px;height:30px;font-size:8px}
 }
+/* Playlist sidebar */
+.playlist-item{padding:8px 10px;cursor:pointer;font-size:11px;color:#888;border-bottom:1px solid #1a1a1e;display:flex;justify-content:space-between;align-items:center;transition:background .1s}
+.playlist-item:hover{background:#1e1e22;color:#ccc}
+.playlist-item.active{background:#1a2a3a;color:#0af;border-left:2px solid #0af}
+.pl-count{font-size:9px;color:#555;font-family:monospace}
+
 /* Deck channel faders */
 .deck-ch-fader{position:absolute;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;z-index:5;padding:10px 8px;background:linear-gradient(180deg,#1a1a1e 0%,#131315 100%);border-radius:8px;border:1px solid #2a2a2e;box-shadow:0 2px 8px rgba(0,0,0,0.4)}
 .deck-ch-fader-right{right:8px}

@@ -77,8 +77,15 @@
   <div class="browser" id="browserPanel">
     <div class="browser-header">Track Browser</div>
     <div class="search-box"><input type="text" id="trackSearch" placeholder="Search tracks..." oninput="filterTracks(this.value)"></div>
-    <div class="sort-controls"><label>Sort:</label><button class="sort-btn active" data-sort="date" onclick="sortTracks('date',this)">Date</button><button class="sort-btn" data-sort="name" onclick="sortTracks('name',this)">Name</button><button class="sort-btn" data-sort="size" onclick="sortTracks('size',this)">Size</button></div>
-    <div class="track-list" id="trackList"></div>
+    <div class="sort-controls"><label>Sort:</label><button class="sort-btn active" data-sort="name" onclick="sortTracks('name',this)">Name</button><button class="sort-btn" data-sort="bpm" onclick="sortTracks('bpm',this)">BPM</button><button class="sort-btn" data-sort="key" onclick="sortTracks('key',this)">Key</button><button class="sort-btn" data-sort="date" onclick="sortTracks('date',this)">Date</button></div>
+    <div class="playlist-header" id="playlistHeader" style="display:none;padding:6px 12px;background:#1a1a1e;align-items:center;gap:8px;border-bottom:1px solid #2a2a2e">
+      <button onclick="showPlaylist(null)" style="background:none;border:1px solid #444;color:#aaa;border-radius:4px;padding:3px 8px;cursor:pointer;font-size:10px">← Back</button>
+      <span class="playlist-name" style="font-size:12px;font-weight:700;color:#ccc"></span>
+    </div>
+    <div class="browser-content" style="display:flex;flex:1;min-height:0;overflow:hidden">
+      <div class="playlist-sidebar" id="playlistList" style="width:160px;overflow-y:auto;border-right:1px solid #2a2a2e;flex-shrink:0"></div>
+      <div class="track-list" id="trackList" style="flex:1;overflow-y:auto"></div>
+    </div>
     <div class="suggested-next-panel" id="suggestedNextPanel" style="display:none">
       <div class="suggested-next-header">🎯 Suggested Next</div>
       <div class="suggested-next-list" id="suggestedNextList"></div>

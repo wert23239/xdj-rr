@@ -311,6 +311,16 @@ app.use(express.static(__dirname));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/learn', (req, res) => res.sendFile(path.join(__dirname, 'learn.html')));
 
+// Rekordbox library with playlists
+app.get('/api/rekordbox', (req, res) => {
+  try {
+    const data = fs.readFileSync(path.join(__dirname, 'rekordbox-library.json'), 'utf8');
+    res.json(JSON.parse(data));
+  } catch (e) {
+    res.json({ library: [], playlists: [] });
+  }
+});
+
 app.get('/api/tracks', (req, res) => {
   try {
     const exts = new Set(['.mp3', '.wav', '.aac', '.m4a', '.ogg', '.flac', '.aif', '.aiff']);

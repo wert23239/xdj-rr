@@ -1324,7 +1324,10 @@ applyTheme();
 
 // ==================== TRACK BROWSER ====================
 let allTracks = [];
-let currentSort = 'date';
+let rbLibrary = [];
+let rbPlaylists = [];
+let currentSort = 'name';
+let currentPlaylist = null; // null = all tracks
 
 function sortTracks(by, btn) {
   currentSort = by;
@@ -1333,24 +1336,55 @@ function sortTracks(by, btn) {
   renderTrackList();
 }
 
+function showPlaylist(name) {
+  currentPlaylist = name;
+  renderTrackList();
+  // Update playlist header
+  const header = document.getElementById('playlistHeader');
+  if (header) {
+    if (name) {
+      header.style.display = 'flex';
+      header.querySelector('.playlist-name').textContent = name;
+    } else {
+      header.style.display = 'none';
+    }
+  }
+}
+
 function renderTrackList() {
-  const sorted = [...allTracks];
-  if (currentSort === 'name') sorted.sort((a, b) => a.name.localeCompare(b.name));
-  else if (currentSort === 'size') sorted.sort((a, b) => b.size - a.size);
-  else sorted.sort((a, b) => b.mtime - a.mtime);
+  let tracks;
+  if (currentPlaylist) {
+    const pl = rbPlaylists.find(p => p.name === currentPlaylist);
+    if (pl) {
+      tracks = pl.tracks.map(fn => rbLibrary.find(t => t.filename === fn) || { name: fn, filename: fn, title: cleanTrackName(fn), artist: '', bpm: 0, key: '' }).map(t => ({ name: t.filename, bpm: t.bpm, key: t.key, title: t.title, artist: t.artist }));
+    } else {
+      tracks = [];
+    }
+  } else {
+    tracks = allTracks.map(t => ({ name: t.name || t.filename, bpm: t.bpm, key: t.key, title: t.title, artist: t.artist, mtime: t.mtime, size: t.size }));
+  }
+
+  const sorted = [...tracks];
+  if (currentSort === 'name') sorted.sort((a, b) => (a.title || a.name).localeCompare(b.title || b.name));
+  else if (currentSort === 'bpm') sorted.sort((a, b) => (a.bpm || 0) - (b.bpm || 0));
+  else if (currentSort === 'key') sorted.sort((a, b) => (a.key || '').localeCompare(b.key || ''));
+  else if (currentSort === 'size') sorted.sort((a, b) => (b.size || 0) - (a.size || 0));
+  else sorted.sort((a, b) => (b.mtime || 0) - (a.mtime || 0));
+
   const list = document.getElementById('trackList');
   const query = (document.getElementById('trackSearch').value || '').toLowerCase();
   list.innerHTML = '';
   sorted.forEach(t => {
-    const cn = cleanTrackName(t.name);
-    if (query && !cn.toLowerCase().includes(query)) return;
+    const cn = t.title || cleanTrackName(t.name);
+    const displayName = t.artist ? `${t.artist} - ${cn}` : cn;
+    if (query && !displayName.toLowerCase().includes(query)) return;
     const div = document.createElement('div');
     div.className = 'track-item';
     div.draggable = true;
     div.dataset.trackName = encodeURIComponent(t.name);
     const bpmTag = t.bpm ? `<span class="track-bpm">${Math.round(t.bpm)}</span>` : '';
-    const keyTag = t.key && t.key !== 'N/A' ? `<span class="track-key">${t.key}</span>` : '';
-    div.innerHTML = `<span class="name" title="${t.name}">${cn}</span><div class="track-meta">${bpmTag}${keyTag}</div><div class="load-btns"><button class="load-btn d1" onclick="event.stopPropagation();loadToDeck(0,'${encodeURIComponent(t.name)}')">D1</button><button class="load-btn d2" onclick="event.stopPropagation();loadToDeck(1,'${encodeURIComponent(t.name)}')">D2</button></div>`;
+    const keyTag = t.key && t.key !== 'N/A' && t.key ? `<span class="track-key">${t.key}</span>` : '';
+    div.innerHTML = `<span class="name" title="${t.name}">${displayName}</span><div class="track-meta">${bpmTag}${keyTag}</div><div class="load-btns"><button class="load-btn d1" onclick="event.stopPropagation();loadToDeck(0,'${encodeURIComponent(t.name)}')">D1</button><button class="load-btn d2" onclick="event.stopPropagation();loadToDeck(1,'${encodeURIComponent(t.name)}')">D2</button></div>`;
     div.ondblclick = () => { const freeDeck = !decks[0].buffer ? 0 : !decks[1].buffer ? 1 : 0; loadToDeck(freeDeck, encodeURIComponent(t.name)); };
     div.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', encodeURIComponent(t.name)); e.dataTransfer.effectAllowed = 'copy'; });
     list.appendChild(div);
@@ -1359,15 +1393,46 @@ function renderTrackList() {
 
 function filterTracks(query) { renderTrackList(); }
 
+function renderPlaylists() {
+  const container = document.getElementById('playlistList');
+  if (!container) return;
+  container.innerHTML = '';
+  // "All Tracks" option
+  const allDiv = document.createElement('div');
+  allDiv.className = 'playlist-item' + (!currentPlaylist ? ' active' : '');
+  allDiv.innerHTML = `<span>📁 All Tracks</span><span class="pl-count">${allTracks.length}</span>`;
+  allDiv.onclick = () => showPlaylist(null);
+  container.appendChild(allDiv);
+  
+  rbPlaylists.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'playlist-item' + (currentPlaylist === p.name ? ' active' : '');
+    div.innerHTML = `<span>🎵 ${p.name}</span><span class="pl-count">${p.tracks.length}</span>`;
+    div.onclick = () => showPlaylist(p.name);
+    container.appendChild(div);
+  });
+}
+
 async function loadTracks() {
   try {
+    // Load Rekordbox library first
+    const rbResp = await fetch('/api/rekordbox');
+    const rbData = await rbResp.json();
+    rbLibrary = rbData.library || [];
+    rbPlaylists = (rbData.playlists || []).filter(p => p.tracks.length > 0).sort((a, b) => a.name.localeCompare(b.name));
+
+    // Map rekordbox data to allTracks format
+    allTracks = rbLibrary.map(t => ({ name: t.filename, title: t.title, artist: t.artist, bpm: t.bpm, key: t.key, mtime: 0, size: 0 }));
+    
+    renderTrackList();
+    renderPlaylists();
+    document.getElementById('status').textContent = allTracks.length + ' tracks loaded';
+  } catch(e) {
+    // Fallback to regular track list
     const resp = await fetch('/api/tracks');
     allTracks = await resp.json();
     renderTrackList();
     document.getElementById('status').textContent = allTracks.length + ' tracks loaded';
-  } catch(e) {
-    showError('Failed to load track list');
-    document.getElementById('status').textContent = 'Error loading tracks';
   }
 }
 
