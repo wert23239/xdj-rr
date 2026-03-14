@@ -324,7 +324,7 @@ class Deck {
     this.eqHi = actx.createBiquadFilter();
     this.eqHi.type = 'highshelf'; this.eqHi.frequency.value = 3200; this.eqHi.gain.value = 0;
     this.eqMid = actx.createBiquadFilter();
-    this.eqMid.type = 'peaking'; this.eqMid.frequency.value = 1000; this.eqMid.Q.value = 0.7; this.eqMid.gain.value = 0;
+    this.eqMid.type = 'peaking'; this.eqMid.frequency.value = 1000; this.eqMid.Q.value = 1.8; this.eqMid.gain.value = 0;
     this.eqLo = actx.createBiquadFilter();
     this.eqLo.type = 'lowshelf'; this.eqLo.frequency.value = 250; this.eqLo.gain.value = 0;
 
@@ -1030,6 +1030,18 @@ document.querySelectorAll('.knob').forEach(knob => {
   };
   knob.addEventListener('mousedown', startHandler);
   knob.addEventListener('touchstart', startHandler, {passive: false});
+  // Double-click to reset knob to center
+  knob.addEventListener('dblclick', () => {
+    knobAngles.set(knob, 0);
+    knob.querySelector('.knob-indicator').style.transform = 'translateX(-50%) rotate(0deg)';
+    const param = knob.dataset.param;
+    const ch = parseInt(knob.dataset.ch);
+    if (param === 'color') {
+      decks[ch].setColorFilter(0.5);
+    } else {
+      applyKnob(knob, 0);
+    }
+  });
 });
 
 function knobMove(y) {
@@ -1069,7 +1081,7 @@ function applyKnob(knob, angle) {
     fxWetDry[ch] = (val + 1) / 2;
     applyFxWetDry(ch);
   } else if (param === 'hi') { deck.eqHi.gain.value = val * 24; }
-  else if (param === 'mid') { deck.eqMid.gain.value = val * 24; }
+  else if (param === 'mid') { deck.eqMid.gain.value = Math.max(-20, Math.min(12, val * 24)); }
   else if (param === 'lo') { deck.eqLo.gain.value = val * 24; }
   else if (param === 'color') { deck.setColorFilter((val + 1) / 2); }
 }
@@ -2227,47 +2239,6 @@ function drawSpectrumAnalyzers() {
   }
 }
 
-// ==================== SLICER MODE ====================
-const slicerState = [{ active: false, sliceIdx: -1, savedPosition: 0 }, { active: false, sliceIdx: -1, savedPosition: 0 }];
-
-function slicerTrigger(deckId, sliceIdx) {
-  const deck = decks[deckId];
-  if (!deck.bpm || !deck.playing) return;
-  const beatDur = 60 / deck.bpm;
-  const sectionDur = beatDur * 8; // 8 beats = 2 bars for slicer domain
-  const currentTime = deck.getCurrentTime();
-  const sectionStart = Math.floor(currentTime / sectionDur) * sectionDur;
-  const sliceDur = sectionDur / 8;
-  const sliceStart = sectionStart + sliceIdx * sliceDur;
-  
-  if (!slicerState[deckId].active) {
-    slicerState[deckId].savedPosition = currentTime;
-  }
-  slicerState[deckId].active = true;
-  slicerState[deckId].sliceIdx = sliceIdx;
-  
-  // Set loop on this slice
-  deck.loopStart = sliceStart;
-  deck.loopEnd = sliceStart + sliceDur;
-  deck.loopActive = true;
-  deck.seekTo(sliceStart);
-  
-  // Highlight pad
-  const pads = document.querySelectorAll('#slicerSection' + deckId + ' .slicer-pad');
-  pads.forEach((p, idx) => p.classList.toggle('active', idx === sliceIdx));
-}
-
-function slicerRelease(deckId) {
-  const deck = decks[deckId];
-  if (!slicerState[deckId].active) return;
-  deck.loopActive = false;
-  // Return to saved position (slip-like behavior)
-  const elapsed = deck.getCurrentTime() - slicerState[deckId].savedPosition;
-  if (elapsed > 0) deck.seekTo(slicerState[deckId].savedPosition + elapsed);
-  slicerState[deckId].active = false;
-  slicerState[deckId].sliceIdx = -1;
-  document.querySelectorAll('#slicerSection' + deckId + ' .slicer-pad').forEach(p => p.classList.remove('active'));
-}
 
 // ==================== ROLL EFFECT ====================
 const rollState = [{ active: false, savedPosition: 0, savedTime: 0 }, { active: false, savedPosition: 0, savedTime: 0 }];
@@ -2537,8 +2508,6 @@ function addTooltips() {
   document.querySelectorAll('.beat-jump-btn').forEach(p => p.setAttribute('data-tooltip', 'Jump ' + p.textContent + ' beats'));
   // Nudge
   document.querySelectorAll('.nudge-btn').forEach(p => p.setAttribute('data-tooltip', 'Nudge tempo'));
-  // Slicer
-  document.querySelectorAll('.slicer-pad').forEach(p => p.setAttribute('data-tooltip', 'Slicer pad — hold to loop slice'));
   // Roll
   document.querySelectorAll('.roll-pad').forEach(p => p.setAttribute('data-tooltip', 'Beat roll — hold to activate'));
   // FX

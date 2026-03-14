@@ -164,19 +164,7 @@
           <button class="loop-btn" data-deck="0" data-beats="2" onclick="toggleLoop(0,2,this)">2</button>
           <button class="loop-btn" data-deck="0" data-beats="4" onclick="toggleLoop(0,4,this)">4</button>
           <button class="loop-btn" data-deck="0" data-beats="8" onclick="toggleLoop(0,8,this)">8</button>
-        </div>
-        <div class="slicer-section" id="slicerSection0">
-          <span style="font-size:9px;color:#555">SLICER</span>
-          <div class="slicer-pads">
-            <button class="slicer-pad" onmousedown="slicerTrigger(0,0)" onmouseup="slicerRelease(0)" ontouchstart="slicerTrigger(0,0)" ontouchend="slicerRelease(0)">1</button>
-            <button class="slicer-pad" onmousedown="slicerTrigger(0,1)" onmouseup="slicerRelease(0)" ontouchstart="slicerTrigger(0,1)" ontouchend="slicerRelease(0)">2</button>
-            <button class="slicer-pad" onmousedown="slicerTrigger(0,2)" onmouseup="slicerRelease(0)" ontouchstart="slicerTrigger(0,2)" ontouchend="slicerRelease(0)">3</button>
-            <button class="slicer-pad" onmousedown="slicerTrigger(0,3)" onmouseup="slicerRelease(0)" ontouchstart="slicerTrigger(0,3)" ontouchend="slicerRelease(0)">4</button>
-            <button class="slicer-pad" onmousedown="slicerTrigger(0,4)" onmouseup="slicerRelease(0)" ontouchstart="slicerTrigger(0,4)" ontouchend="slicerRelease(0)">5</button>
-            <button class="slicer-pad" onmousedown="slicerTrigger(0,5)" onmouseup="slicerRelease(0)" ontouchstart="slicerTrigger(0,5)" ontouchend="slicerRelease(0)">6</button>
-            <button class="slicer-pad" onmousedown="slicerTrigger(0,6)" onmouseup="slicerRelease(0)" ontouchstart="slicerTrigger(0,6)" ontouchend="slicerRelease(0)">7</button>
-            <button class="slicer-pad" onmousedown="slicerTrigger(0,7)" onmouseup="slicerRelease(0)" ontouchstart="slicerTrigger(0,7)" ontouchend="slicerRelease(0)">8</button>
-          </div>
+          <button class="loop-btn" data-deck="0" data-beats="16" onclick="toggleLoop(0,16,this)">16</button>
         </div>
         <div class="roll-section">
           <span style="font-size:9px;color:#555">ROLL</span>
@@ -224,6 +212,13 @@
           <button class="quantize-btn" id="quantize1" onclick="toggleQuantize(0)">Q</button>
           <button class="log-btn" id="logBtn1" onclick="logTrack(0)" disabled>📝 LOG</button>
           <button class="vinyl-mode-btn" id="vinylMode1" onclick="toggleVinylMode(0)" data-tooltip="Vinyl mode — slowdown on stop, scratch sounds">🎵 VINYL</button>
+        </div>
+        <div class="deck-volume-section">
+          <label style="color:var(--deck1);font-size:9px">VOLUME</label>
+          <div class="deck-fader-row">
+            <input type="range" class="vol-fader" id="vol1" min="0" max="1" step="0.01" value="0.85">
+            <div class="meter"><div class="meter-fill" id="meter1" style="height:0%"></div></div>
+          </div>
         </div>
         <div class="tempo-section">
           <span class="tempo-range-label" id="tempoMin1" style="font-size:9px;color:#555">−8</span>
@@ -289,77 +284,6 @@
           <button class="auto-gain-btn" id="autoGainBtn" onclick="toggleAutoGain()">AUTO-GAIN</button>
         </div>
         <div class="section-divider"></div>
-        <div class="faders-section">
-          <div class="fader-col"><label style="color:var(--deck1)">CH1</label><input type="range" class="vol-fader" id="vol1" min="0" max="1" step="0.01" value="0.85"></div>
-          <div class="meter-col"><div class="meter"><div class="meter-fill" id="meter1" style="height:0%"></div></div></div>
-          <div class="meter-col"><div class="meter"><div class="meter-fill" id="meter2" style="height:0%"></div></div></div>
-          <div class="fader-col"><label style="color:var(--deck2)">CH2</label><input type="range" class="vol-fader" id="vol2" min="0" max="1" step="0.01" value="0.85"></div>
-        </div>
-        <div class="section-divider"></div>
-        <div class="crossfader-section">
-          <label>Crossfader</label>
-          <input type="range" class="crossfader" id="crossfader" min="0" max="1" step="0.01" value="0.5">
-          <div class="crossfader-region" id="xfadeRegion"></div>
-        </div>
-        <div class="xfade-curve-section">
-          <span style="font-size:8px;color:#555">CURVE:</span>
-          <button class="xfade-curve-btn active" id="xfCurveSmooth" onclick="setXfadeCurve('smooth')">SMOOTH</button>
-          <button class="xfade-curve-btn" id="xfCurveSharp" onclick="setXfadeCurve('sharp')">SHARP</button>
-          <button class="xfade-curve-btn" id="xfCurvePower" onclick="setXfadeCurve('power')">POWER</button>
-        </div>
-        <div class="cue-master-section">
-          <label>CUE/MASTER</label>
-          <div class="knob" data-param="cuemix" data-ch="0" title="CUE/MASTER MIX"><div class="knob-indicator"></div></div>
-          <span class="cue-master-val" id="cueMasterVal">CUE ◆ MST</span>
-        </div>
-        <div class="auto-xfade-section">
-          <button class="auto-xfade-btn" id="autoXfadeL" onclick="autoXfade('left')" title="Auto-crossfade to Deck 1">← D1</button>
-          <button class="auto-xfade-btn" id="autoXfadeR" onclick="autoXfade('right')" title="Auto-crossfade to Deck 2">D2 →</button>
-        </div>
-        <div class="xfade-hint" id="xfadeHint"></div>
-        <div class="automix-section">
-          <label>Auto-Mix</label>
-          <div class="automix-btns">
-            <button class="automix-btn" onclick="autoMixTransition('smooth16')" title="Smooth 16-bar blend with EQ transition">16-BAR</button>
-            <button class="automix-btn" onclick="autoMixTransition('echoOut')" title="Echo out transition">ECHO OUT</button>
-            <button class="automix-btn" onclick="autoMixTransition('cutSwap')" title="Instant cut swap">CUT SWAP</button>
-          </div>
-          <div class="energy-meter-section">
-          <label>ENERGY</label>
-          <div class="energy-meter">
-            <div class="energy-meter-fill" id="energyMeterFill"></div>
-            <span class="energy-meter-label" id="energyMeterLabel">—</span>
-          </div>
-        </div>
-        <div class="automix-progress" id="automixProgress" style="display:none">
-            <div class="automix-progress-bar"><div class="automix-progress-fill" id="automixProgressFill"></div></div>
-            <span class="automix-progress-text" id="automixProgressText">—</span>
-          </div>
-        </div>
-        <div class="section-divider"></div>
-        <div class="transition-fx-section">
-          <label>Transition FX</label>
-          <div class="transition-fx-btns">
-            <button class="transition-fx-btn" id="txfxEcho" onclick="applyTransitionFX('echoOut')" title="Echo + Fade out">ECHO OUT</button>
-            <button class="transition-fx-btn" id="txfxFilter" onclick="applyTransitionFX('filterSweep')" title="Low-pass filter sweep">FILTER SWEEP</button>
-            <button class="transition-fx-btn" id="txfxReverb" onclick="applyTransitionFX('reverbWash')" title="Reverb + Crossfade">REVERB WASH</button>
-            <button class="transition-fx-btn" id="txfxCut" onclick="applyTransitionFX('hardCut')" title="Instant swap">HARD CUT</button>
-          </div>
-        </div>
-        <div class="section-divider"></div>
-        <div class="sampler">
-          <div class="sampler-label">Sampler</div>
-          <div class="sampler-pads">
-            <div class="sampler-pad-wrapper" id="spadWrap0"><button class="sampler-pad s-airhorn" id="spad0" onclick="playSample(0)">AIR<br>HORN</button><div class="spad-controls"><input type="range" class="spad-vol" id="spadVol0" min="0" max="1" step="0.05" value="0.8" oninput="setSamplerPadVolume(0,this.value)" title="Volume"><button class="spad-loop-btn" id="spadLoop0" onclick="toggleSamplerLoop(0)" title="One-shot / Loop">1×</button></div></div>
-            <div class="sampler-pad-wrapper" id="spadWrap1"><button class="sampler-pad s-siren" id="spad1" onclick="playSample(1)">SIREN</button><div class="spad-controls"><input type="range" class="spad-vol" id="spadVol1" min="0" max="1" step="0.05" value="0.8" oninput="setSamplerPadVolume(1,this.value)" title="Volume"><button class="spad-loop-btn" id="spadLoop1" onclick="toggleSamplerLoop(1)" title="One-shot / Loop">1×</button></div></div>
-            <div class="sampler-pad-wrapper" id="spadWrap2"><button class="sampler-pad s-scratch" id="spad2" onclick="playSample(2)">SCRATCH</button><div class="spad-controls"><input type="range" class="spad-vol" id="spadVol2" min="0" max="1" step="0.05" value="0.8" oninput="setSamplerPadVolume(2,this.value)" title="Volume"><button class="spad-loop-btn" id="spadLoop2" onclick="toggleSamplerLoop(2)" title="One-shot / Loop">1×</button></div></div>
-            <div class="sampler-pad-wrapper" id="spadWrap3"><button class="sampler-pad s-crowd" id="spad3" onclick="playSample(3)">CROWD</button><div class="spad-controls"><input type="range" class="spad-vol" id="spadVol3" min="0" max="1" step="0.05" value="0.8" oninput="setSamplerPadVolume(3,this.value)" title="Volume"><button class="spad-loop-btn" id="spadLoop3" onclick="toggleSamplerLoop(3)" title="One-shot / Loop">1×</button></div></div>
-            <div class="sampler-pad-wrapper" id="spadWrap4"><button class="sampler-pad s-clap" id="spad4" onclick="playSample(4)">CLAP</button><div class="spad-controls"><input type="range" class="spad-vol" id="spadVol4" min="0" max="1" step="0.05" value="0.8" oninput="setSamplerPadVolume(4,this.value)" title="Volume"><button class="spad-loop-btn" id="spadLoop4" onclick="toggleSamplerLoop(4)" title="One-shot / Loop">1×</button></div></div>
-            <div class="sampler-pad-wrapper" id="spadWrap5"><button class="sampler-pad s-laser" id="spad5" onclick="playSample(5)">LASER</button><div class="spad-controls"><input type="range" class="spad-vol" id="spadVol5" min="0" max="1" step="0.05" value="0.8" oninput="setSamplerPadVolume(5,this.value)" title="Volume"><button class="spad-loop-btn" id="spadLoop5" onclick="toggleSamplerLoop(5)" title="One-shot / Loop">1×</button></div></div>
-            <div class="sampler-pad-wrapper" id="spadWrap6"><button class="sampler-pad s-kick" id="spad6" onclick="playSample(6)">KICK</button><div class="spad-controls"><input type="range" class="spad-vol" id="spadVol6" min="0" max="1" step="0.05" value="0.8" oninput="setSamplerPadVolume(6,this.value)" title="Volume"><button class="spad-loop-btn" id="spadLoop6" onclick="toggleSamplerLoop(6)" title="One-shot / Loop">1×</button></div></div>
-            <div class="sampler-pad-wrapper" id="spadWrap7"><button class="sampler-pad s-hihat" id="spad7" onclick="playSample(7)">HI-HAT</button><div class="spad-controls"><input type="range" class="spad-vol" id="spadVol7" min="0" max="1" step="0.05" value="0.8" oninput="setSamplerPadVolume(7,this.value)" title="Volume"><button class="spad-loop-btn" id="spadLoop7" onclick="toggleSamplerLoop(7)" title="One-shot / Loop">1×</button></div></div>
-          </div>
-        </div>
         <div class="section-divider"></div>
         <div class="beatfx">
           <div class="mixer-label">Beat FX</div>
@@ -426,19 +350,7 @@
           <button class="loop-btn" data-deck="1" data-beats="2" onclick="toggleLoop(1,2,this)">2</button>
           <button class="loop-btn" data-deck="1" data-beats="4" onclick="toggleLoop(1,4,this)">4</button>
           <button class="loop-btn" data-deck="1" data-beats="8" onclick="toggleLoop(1,8,this)">8</button>
-        </div>
-        <div class="slicer-section" id="slicerSection1">
-          <span style="font-size:9px;color:#555">SLICER</span>
-          <div class="slicer-pads">
-            <button class="slicer-pad" onmousedown="slicerTrigger(1,0)" onmouseup="slicerRelease(1)" ontouchstart="slicerTrigger(1,0)" ontouchend="slicerRelease(1)">1</button>
-            <button class="slicer-pad" onmousedown="slicerTrigger(1,1)" onmouseup="slicerRelease(1)" ontouchstart="slicerTrigger(1,1)" ontouchend="slicerRelease(1)">2</button>
-            <button class="slicer-pad" onmousedown="slicerTrigger(1,2)" onmouseup="slicerRelease(1)" ontouchstart="slicerTrigger(1,2)" ontouchend="slicerRelease(1)">3</button>
-            <button class="slicer-pad" onmousedown="slicerTrigger(1,3)" onmouseup="slicerRelease(1)" ontouchstart="slicerTrigger(1,3)" ontouchend="slicerRelease(1)">4</button>
-            <button class="slicer-pad" onmousedown="slicerTrigger(1,4)" onmouseup="slicerRelease(1)" ontouchstart="slicerTrigger(1,4)" ontouchend="slicerRelease(1)">5</button>
-            <button class="slicer-pad" onmousedown="slicerTrigger(1,5)" onmouseup="slicerRelease(1)" ontouchstart="slicerTrigger(1,5)" ontouchend="slicerRelease(1)">6</button>
-            <button class="slicer-pad" onmousedown="slicerTrigger(1,6)" onmouseup="slicerRelease(1)" ontouchstart="slicerTrigger(1,6)" ontouchend="slicerRelease(1)">7</button>
-            <button class="slicer-pad" onmousedown="slicerTrigger(1,7)" onmouseup="slicerRelease(1)" ontouchstart="slicerTrigger(1,7)" ontouchend="slicerRelease(1)">8</button>
-          </div>
+          <button class="loop-btn" data-deck="1" data-beats="16" onclick="toggleLoop(1,16,this)">16</button>
         </div>
         <div class="roll-section">
           <span style="font-size:9px;color:#555">ROLL</span>
@@ -486,6 +398,13 @@
           <button class="quantize-btn" id="quantize2" onclick="toggleQuantize(1)">Q</button>
           <button class="log-btn" id="logBtn2" onclick="logTrack(1)" disabled>📝 LOG</button>
           <button class="vinyl-mode-btn" id="vinylMode2" onclick="toggleVinylMode(1)" data-tooltip="Vinyl mode — slowdown on stop, scratch sounds">🎵 VINYL</button>
+        </div>
+        <div class="deck-volume-section">
+          <label style="color:var(--deck2);font-size:9px">VOLUME</label>
+          <div class="deck-fader-row">
+            <input type="range" class="vol-fader" id="vol2" min="0" max="1" step="0.01" value="0.85">
+            <div class="meter"><div class="meter-fill" id="meter2" style="height:0%"></div></div>
+          </div>
         </div>
         <div class="tempo-section">
           <span class="tempo-range-label" id="tempoMin2" style="font-size:9px;color:#555">−8</span>
@@ -561,7 +480,7 @@
 <div class="about-overlay" id="aboutOverlay" onclick="if(event.target===this)toggleAboutPanel()">
   <div class="about-box">
     <h2>ⓘ About XDJ-RR</h2>
-    <div class="about-version">v30</div>
+    <div class="about-version">v31</div>
     <div class="about-content">
       <div class="stat-row"><span class="stat-label">Tracks in Library</span><span class="stat-value" id="aboutTrackCount">—</span></div>
       <div class="stat-row"><span class="stat-label">Waveform Cache</span><span class="stat-value" id="aboutWaveformStatus">—</span></div>
@@ -572,7 +491,7 @@
       <div class="about-feature-label">Key Features</div>
       <div class="about-feature-list">
         2-Deck Mixing · BPM Detection · Key Detection · Harmonic Mixing ·
-        Beat Sync · Slicer · Beat Roll · Stutter · Tape Stop · Vinyl Brake ·
+        Beat Sync · Beat Roll · Stutter · Tape Stop · Vinyl Brake ·
         3-Band EQ with Kill · Color FX · 6 Beat FX · Hot Cues · Loops ·
         Parallel Waveforms · Spectrum Analyzer · Mix Recording ·
         Tracklist Logging · Playlists · Song Discovery · Sampler ·

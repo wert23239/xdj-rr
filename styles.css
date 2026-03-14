@@ -191,6 +191,14 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-ap
 .vol-fader{-webkit-appearance:none;writing-mode:vertical-lr;direction:rtl;width:4px;height:100px;background:linear-gradient(180deg,#333 0%,#1a1a1e 100%);border-radius:2px;box-shadow:inset 0 1px 3px rgba(0,0,0,0.5)}
 .vol-fader::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:14px;background:linear-gradient(180deg,#bbb 0%,#888 30%,#666 70%,#555 100%);border-radius:3px;cursor:pointer;border:1px solid #999;box-shadow:0 2px 6px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.3);position:relative}
 
+/* Deck Volume Fader */
+.deck-volume-section{display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0}
+.deck-fader-row{display:flex;align-items:center;gap:6px;justify-content:center}
+.deck-fader-row .vol-fader{-webkit-appearance:none;writing-mode:vertical-lr;direction:rtl;width:4px;height:80px;background:linear-gradient(180deg,#333 0%,#1a1a1e 100%);border-radius:2px;box-shadow:inset 0 1px 3px rgba(0,0,0,0.5)}
+.deck-fader-row .vol-fader::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:14px;background:linear-gradient(180deg,#bbb 0%,#888 30%,#666 70%,#555 100%);border-radius:3px;cursor:pointer;border:1px solid #999;box-shadow:0 2px 6px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.3)}
+.deck-fader-row .meter{width:6px;height:80px;background:#111114;border-radius:3px;position:relative;overflow:hidden;box-shadow:inset 0 1px 3px rgba(0,0,0,0.5)}
+.deck-fader-row .meter-fill{position:absolute;bottom:0;width:100%;background:linear-gradient(to top,var(--green),#ff0 70%,var(--red));border-radius:3px;transition:height 50ms}
+
 /* Color FX */
 .color-fx{display:flex;flex-direction:column;align-items:center;gap:4px}
 .color-fx label{font-size:9px;color:#555;text-transform:uppercase}
@@ -721,11 +729,6 @@ body.light-theme .deck-header{background:linear-gradient(180deg,#eee 0%,#e0e0e0 
 .deck-spectrum{flex:1;height:100%}
 .master-spectrum{width:210px;height:100%;flex-shrink:0}
 
-/* Slicer */
-.slicer-section{display:flex;flex-direction:column;align-items:center;gap:2px}
-.slicer-pads{display:flex;gap:3px;justify-content:center}
-.slicer-pad{width:28px;height:24px;border:1px solid #3a3a40;background:linear-gradient(180deg,#222226 0%,#1a1a1e 100%);color:#888;border-radius:var(--button-radius);font-size:9px;font-weight:700;cursor:pointer;touch-action:manipulation;box-shadow:0 2px 4px rgba(0,0,0,0.4);transition:all .08s}
-.slicer-pad:active,.slicer-pad.active{border-color:#f0f;color:#f0f;background:linear-gradient(180deg,#2a0a2a 0%,#1a051a 100%);box-shadow:0 0 8px rgba(255,0,255,0.4)}
 
 /* Roll */
 .roll-section{display:flex;flex-direction:column;align-items:center;gap:2px}
@@ -888,7 +891,6 @@ body.accent-minimal .topbar .logo{color:#666}
 .d1 .tempo-slider::-webkit-slider-thumb{border-color:var(--deck1)}
 .d1 .nudge-btn:active{border-color:var(--deck1);color:var(--deck1)}
 .d1 .roll-pad:active,.d1 .roll-pad.active{border-color:var(--deck1);color:var(--deck1);background:linear-gradient(180deg,#0a1a2a 0%,#050f1a 100%);box-shadow:0 0 8px rgba(0,170,255,0.3)}
-.d1 .slicer-pad:active,.d1 .slicer-pad.active{border-color:var(--deck1);color:var(--deck1);background:linear-gradient(180deg,#0a1a2a 0%,#050f1a 100%);box-shadow:0 0 8px rgba(0,170,255,0.3)}
 
 .d2 .loop-btn{border-color:#553a1a}
 .d2 .loop-btn.active{border-color:var(--deck2);color:var(--deck2);background:linear-gradient(180deg,#2a1a0a 0%,#1a0f05 100%);box-shadow:0 0 8px rgba(255,136,0,0.3)}
@@ -897,7 +899,6 @@ body.accent-minimal .topbar .logo{color:#666}
 .d2 .tempo-slider::-webkit-slider-thumb{border-color:var(--deck2)}
 .d2 .nudge-btn:active{border-color:var(--deck2);color:var(--deck2)}
 .d2 .roll-pad:active,.d2 .roll-pad.active{border-color:var(--deck2);color:var(--deck2);background:linear-gradient(180deg,#2a1a0a 0%,#1a0f05 100%);box-shadow:0 0 8px rgba(255,136,0,0.3)}
-.d2 .slicer-pad:active,.d2 .slicer-pad.active{border-color:var(--deck2);color:var(--deck2);background:linear-gradient(180deg,#2a1a0a 0%,#1a0f05 100%);box-shadow:0 0 8px rgba(255,136,0,0.3)}
 
 /* ============ Master Tempo Lock ============ */
 .master-tempo-btn{padding:4px 10px;border:1px solid #3a3a40;background:linear-gradient(180deg,#2a2a30 0%,#1a1a1e 100%);color:#888;border-radius:var(--button-radius);font-size:10px;cursor:pointer;font-weight:700;transition:all .15s;box-shadow:0 1px 3px rgba(0,0,0,0.4)}
