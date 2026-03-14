@@ -1134,6 +1134,19 @@ function jogMove(y) {
   }, 100);
 }
 
+function jogRelease() {
+  if (jogDragging !== null) {
+    const deck = decks[jogDragging];
+    if (deck.slipActive) {
+      const elapsed = actx.currentTime - deck.slipStartTime;
+      deck.seekTo(deck.slipPosition + elapsed);
+      deck.slipActive = false;
+    }
+    document.getElementById('jog' + (jogDragging + 1)).style.cursor = 'grab';
+    jogDragging = null;
+  }
+}
+
 // Jog mouse/touch handlers moved to enhanced jog section below
 
 // ==================== FX BUTTON ====================
@@ -2750,6 +2763,7 @@ function updateEnergyMeter() {
   
   const fill = document.getElementById('energyMeterFill');
   const label = document.getElementById('energyMeterLabel');
+  if (!fill || !label) return;
   fill.style.width = (normalizedEnergy * 100) + '%';
   
   let levelText, levelColor;

@@ -112,8 +112,7 @@ document.addEventListener('touchend', (e) => {
 }, { passive: true });
 
 // Update mobile play button in animation loop
-const _origAnimate = animate;
-// Patch via interval since animate is recursive
+// (using interval since animate is recursive and _origAnimate is in app.js)
 setInterval(() => {
   if (isMobile()) updateMobilePlayBtn();
 }, 200);
