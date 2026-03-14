@@ -126,7 +126,12 @@
     </div>
     <div class="decks-area">
       <!-- DECK 1 -->
-      <div class="deck d1" id="deckEl1">
+      <div class="deck d1" id="deckEl1" style="position:relative">
+        <div class="deck-ch-fader deck-ch-fader-right">
+          <label style="color:var(--deck1);font-size:8px;font-weight:700">CH1</label>
+          <input type="range" class="vol-fader vol-fader-vertical" id="vol1" min="0" max="1" step="0.01" value="0.85" orient="vertical">
+          <div class="meter" style="height:100px;width:5px"><div class="meter-fill" id="meter1" style="height:0%"></div></div>
+        </div>
         <div class="deck-label-big">DECK 1</div>
         <div class="deck-header">
           <span class="deck-label">DECK 1</span>
@@ -225,11 +230,6 @@
           <button class="quantize-btn" id="quantize1" onclick="toggleQuantize(0)">Q</button>
           <button class="log-btn" id="logBtn1" onclick="logTrack(0)" disabled>📝 LOG</button>
           <button class="vinyl-mode-btn" id="vinylMode1" onclick="toggleVinylMode(0)" data-tooltip="Vinyl mode — slowdown on stop, scratch sounds">🎵 VINYL</button>
-        </div>
-        <div class="deck-volume-section" style="display:flex;align-items:center;gap:6px;justify-content:center;padding:4px 0">
-          <label style="color:var(--deck1);font-size:9px;font-weight:700">VOL</label>
-          <input type="range" class="vol-fader" id="vol1" min="0" max="1" step="0.01" value="0.85" style="width:80px">
-          <div class="meter" style="height:60px;width:6px"><div class="meter-fill" id="meter1" style="height:0%"></div></div>
         </div>
         <div class="tempo-section">
           <span class="tempo-range-label" id="tempoMin1" style="font-size:9px;color:#555">−8</span>
@@ -389,7 +389,12 @@
         </div>
       </div>
       <!-- DECK 2 -->
-      <div class="deck d2" id="deckEl2">
+      <div class="deck d2" id="deckEl2" style="position:relative">
+        <div class="deck-ch-fader deck-ch-fader-left">
+          <label style="color:var(--deck2);font-size:8px;font-weight:700">CH2</label>
+          <input type="range" class="vol-fader vol-fader-vertical" id="vol2" min="0" max="1" step="0.01" value="0.85" orient="vertical">
+          <div class="meter" style="height:100px;width:5px"><div class="meter-fill" id="meter2" style="height:0%"></div></div>
+        </div>
         <div class="deck-label-big">DECK 2</div>
         <div class="deck-header">
           <span class="deck-label">DECK 2</span>
@@ -488,11 +493,6 @@
           <button class="quantize-btn" id="quantize2" onclick="toggleQuantize(1)">Q</button>
           <button class="log-btn" id="logBtn2" onclick="logTrack(1)" disabled>📝 LOG</button>
           <button class="vinyl-mode-btn" id="vinylMode2" onclick="toggleVinylMode(1)" data-tooltip="Vinyl mode — slowdown on stop, scratch sounds">🎵 VINYL</button>
-        </div>
-        <div class="deck-volume-section" style="display:flex;align-items:center;gap:6px;justify-content:center;padding:4px 0">
-          <label style="color:var(--deck2);font-size:9px;font-weight:700">VOL</label>
-          <input type="range" class="vol-fader" id="vol2" min="0" max="1" step="0.01" value="0.85" style="width:80px">
-          <div class="meter" style="height:60px;width:6px"><div class="meter-fill" id="meter2" style="height:0%"></div></div>
         </div>
         <div class="tempo-section">
           <span class="tempo-range-label" id="tempoMin2" style="font-size:9px;color:#555">−8</span>
