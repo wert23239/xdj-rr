@@ -131,14 +131,24 @@ setInterval(() => {
 }, 250);
 
 // ==================== TUTORIAL SYSTEM ====================
-const TRACKS = [
-  { url: '/tracks/Avicii%20vs%20Nicky%20Romero%20-%20I%20Could%20Be%20The%20One.wav', name: 'Avicii vs Nicky Romero - I Could Be The One' },
-  { url: '/tracks/Michelle%20-%20Pulse.wav', name: 'Michelle - Pulse' }
+const ALLOWED_TRACKS = [
+  { name: 'Avicii vs Nicky Romero - I Could Be The One.wav', bpm: 128 },
+  { name: 'Michelle - Pulse.wav', bpm: 128 }
 ];
+
+let deck1Loaded = false, deck2Loaded = false;
 
 const STEPS = [
   {
-    text: "Welcome to DJ School! 🎧 Let's learn how to mix two songs together. Click <b>PLAY</b> on Deck 1 to start your first track.",
+    text: "Welcome to DJ School! 🎧 Let's learn how to mix. First, find a song in the library below and press <b>D1</b> to load it to Deck 1.",
+    highlight: ['library-panel'], enable: ['library-panel']
+  },
+  {
+    text: "Great! Now load the other song to Deck 2 by pressing <b>D2</b>.",
+    highlight: ['library-panel'], enable: ['library-panel']
+  },
+  {
+    text: "Both decks are loaded! Click <b>PLAY</b> on Deck 1 to start your first track.",
     highlight: ['play1'], enable: ['play1', 'deck1-panel']
   },
   {
@@ -159,28 +169,79 @@ const STEPS = [
   },
   {
     text: "🎉 <b>Congratulations!</b> You just did your first DJ mix! You learned: loading tracks, playing them, and using the crossfader to transition. More levels coming soon!",
-    highlight: [], enable: ['play1', 'play2', 'crossfader-panel', 'deck1-panel', 'deck2-panel']
+    highlight: [], enable: ['play1', 'play2', 'crossfader-panel', 'deck1-panel', 'deck2-panel', 'library-panel']
   }
 ];
 
 let currentStep = 0;
 let crossfaderMoved = false;
 
+// ==================== LIBRARY ====================
+function renderLibrary() {
+  const list = document.getElementById('library-list');
+  list.innerHTML = '';
+  ALLOWED_TRACKS.forEach(t => {
+    const row = document.createElement('div');
+    row.className = 'library-track';
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'library-track-name';
+    nameSpan.textContent = t.name.replace(/\.\w+$/, '');
+    const bpmSpan = document.createElement('span');
+    bpmSpan.className = 'library-track-bpm';
+    bpmSpan.textContent = t.bpm + ' BPM';
+    const d1btn = document.createElement('button');
+    d1btn.className = 'load-btn load-btn-d1';
+    d1btn.textContent = 'D1';
+    d1btn.id = 'load-d1-' + t.name;
+    d1btn.addEventListener('click', () => loadToDeck(1, t));
+    const d2btn = document.createElement('button');
+    d2btn.className = 'load-btn load-btn-d2';
+    d2btn.textContent = 'D2';
+    d2btn.id = 'load-d2-' + t.name;
+    d2btn.addEventListener('click', () => loadToDeck(2, t));
+    row.append(nameSpan, bpmSpan, d1btn, d2btn);
+    list.appendChild(row);
+  });
+  updateLibraryButtons();
+}
+
+function updateLibraryButtons() {
+  // In step 0 only show D1, in step 1 only show D2, otherwise hide load buttons
+  document.querySelectorAll('.load-btn-d1').forEach(b => {
+    b.classList.toggle('disabled-control', currentStep !== 0);
+  });
+  document.querySelectorAll('.load-btn-d2').forEach(b => {
+    b.classList.toggle('disabled-control', currentStep !== 1);
+  });
+}
+
+async function loadToDeck(deckNum, track) {
+  const url = '/tracks/' + encodeURIComponent(track.name);
+  const displayName = track.name.replace(/\.\w+$/, '');
+  const deck = deckNum === 1 ? deck1 : deck2;
+  try {
+    await deck.loadTrack(url, displayName);
+    if (deckNum === 1) { deck1Loaded = true; if (currentStep === 0) showStep(1); }
+    else { deck2Loaded = true; if (currentStep === 1) showStep(2); }
+  } catch (e) {
+    document.getElementById('tutorial-text').textContent = 'Error loading track: ' + e.message;
+  }
+}
+
+// ==================== STEP MANAGEMENT ====================
 function showStep(idx) {
   currentStep = idx;
   const step = STEPS[idx];
   document.getElementById('tutorial-step').textContent = `Step ${idx + 1}/${STEPS.length}`;
   document.getElementById('tutorial-text').innerHTML = step.text;
-  // Re-trigger animation
   const box = document.getElementById('tutorial-box');
   box.style.animation = 'none'; box.offsetHeight; box.style.animation = '';
 
-  // Clear all highlights and disable all interactive controls
+  // Clear highlights
   document.querySelectorAll('.highlight-blue, .highlight-orange, .highlight-white').forEach(el => {
     el.classList.remove('highlight-blue', 'highlight-orange', 'highlight-white');
   });
 
-  const allControls = ['play1', 'play2', 'cue1', 'cue2', 'crossfader-panel', 'deck1-panel', 'deck2-panel'];
   const interactiveElements = ['play1', 'play2', 'cue1', 'cue2', 'crossfader',
     'eq1-hi', 'eq1-mid', 'eq1-lo', 'eq2-hi', 'eq2-mid', 'eq2-lo', 'tempo1', 'tempo2'];
 
@@ -189,19 +250,19 @@ function showStep(idx) {
     const el = document.getElementById(id);
     if (el) el.classList.add('disabled-control');
   });
+  document.getElementById('library-panel').classList.add('disabled-control');
 
-  // Enable allowed controls
+  // Enable allowed
   const enableIds = step.enable || [];
   enableIds.forEach(id => {
     const el = document.getElementById(id);
     if (el) {
       el.classList.remove('disabled-control');
-      // Also enable child inputs
       el.querySelectorAll('input, button').forEach(c => c.classList.remove('disabled-control'));
     }
   });
 
-  // Add highlights
+  // Highlights
   step.highlight.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -209,42 +270,34 @@ function showStep(idx) {
     else if (id.includes('2') || id.includes('deck2')) el.classList.add('highlight-orange');
     else el.classList.add('highlight-white');
   });
+
+  updateLibraryButtons();
 }
 
 function checkStep() {
-  if (currentStep === 2 && !crossfaderMoved) {
+  if (currentStep === 4 && !crossfaderMoved) {
     crossfaderMoved = true;
-    showStep(3);
-  } else if (currentStep === 3 && parseFloat(crossfader.value) > 0.8) {
-    showStep(4);
-  } else if (currentStep === 4) {
+    showStep(5);
+  } else if (currentStep === 5 && parseFloat(crossfader.value) > 0.8) {
+    showStep(6);
+  } else if (currentStep === 6) {
     const v = parseFloat(crossfader.value);
-    if (v >= 0.3 && v <= 0.7) showStep(5);
+    if (v >= 0.3 && v <= 0.7) showStep(7);
   }
 }
 
 // Button wiring
 document.getElementById('play1').addEventListener('click', () => {
   deck1.toggle();
-  if (currentStep === 0 && deck1.playing) showStep(1);
+  if (currentStep === 2 && deck1.playing) showStep(3);
 });
 document.getElementById('play2').addEventListener('click', () => {
   deck2.toggle();
-  if (currentStep === 1 && deck2.playing) showStep(2);
+  if (currentStep === 3 && deck2.playing) showStep(4);
 });
 document.getElementById('cue1').addEventListener('click', () => deck1.cue());
 document.getElementById('cue2').addEventListener('click', () => deck2.cue());
 
 // ==================== INIT ====================
-async function init() {
-  try {
-    await Promise.all([
-      deck1.loadTrack(TRACKS[0].url, TRACKS[0].name),
-      deck2.loadTrack(TRACKS[1].url, TRACKS[1].name)
-    ]);
-    showStep(0);
-  } catch (e) {
-    document.getElementById('tutorial-text').textContent = 'Error loading tracks: ' + e.message;
-  }
-}
-init();
+renderLibrary();
+showStep(0);
