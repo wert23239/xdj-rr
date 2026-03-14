@@ -1060,6 +1060,10 @@ body{transition:background 0.3s ease,color 0.3s ease}
   .fx-btn{padding:3px 6px;font-size:8px}
   .sampler-pad{width:44px;height:30px;font-size:8px}
 }
+@media (pointer: coarse) {
+  .track-item .load-btns{opacity:1}
+  .track-item{padding:12px}
+}
 @media (max-width: 900px) {
   .browser{width:180px}
   .mixer{width:170px}
