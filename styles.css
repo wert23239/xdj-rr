@@ -1063,6 +1063,9 @@ body{transition:background 0.3s ease,color 0.3s ease}
 @media (pointer: coarse) {
   .track-item .load-btns{opacity:1}
   .track-item{padding:12px}
+  .track-item .load-btn{padding:8px 14px;font-size:12px;border-radius:5px;-webkit-tap-highlight-color:transparent}
+  .load-btn.d1{background:var(--deck1);color:#000}
+  .load-btn.d2{background:var(--deck2);color:#000}
 }
 @media (max-width: 900px) {
   .browser{width:180px}
