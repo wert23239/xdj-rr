@@ -226,6 +226,11 @@
           <button class="log-btn" id="logBtn1" onclick="logTrack(0)" disabled>📝 LOG</button>
           <button class="vinyl-mode-btn" id="vinylMode1" onclick="toggleVinylMode(0)" data-tooltip="Vinyl mode — slowdown on stop, scratch sounds">🎵 VINYL</button>
         </div>
+        <div class="deck-volume-section" style="display:flex;align-items:center;gap:6px;justify-content:center;padding:4px 0">
+          <label style="color:var(--deck1);font-size:9px;font-weight:700">VOL</label>
+          <input type="range" class="vol-fader" id="vol1" min="0" max="1" step="0.01" value="0.85" style="width:80px">
+          <div class="meter" style="height:60px;width:6px"><div class="meter-fill" id="meter1" style="height:0%"></div></div>
+        </div>
         <div class="tempo-section">
           <span class="tempo-range-label" id="tempoMin1" style="font-size:9px;color:#555">−8</span>
           <input type="range" class="tempo-slider" id="tempo1" min="-8" max="8" step="0.1" value="0">
@@ -290,12 +295,7 @@
           <button class="auto-gain-btn" id="autoGainBtn" onclick="toggleAutoGain()">AUTO-GAIN</button>
         </div>
         <div class="section-divider"></div>
-        <div class="faders-section">
-          <div class="fader-col"><label style="color:var(--deck1)">CH1</label><input type="range" class="vol-fader" id="vol1" min="0" max="1" step="0.01" value="0.85"></div>
-          <div class="meter-col"><div class="meter"><div class="meter-fill" id="meter1" style="height:0%"></div></div></div>
-          <div class="meter-col"><div class="meter"><div class="meter-fill" id="meter2" style="height:0%"></div></div></div>
-          <div class="fader-col"><label style="color:var(--deck2)">CH2</label><input type="range" class="vol-fader" id="vol2" min="0" max="1" step="0.01" value="0.85"></div>
-        </div>
+        <!-- CH1/CH2 faders moved to decks -->
         <div class="section-divider"></div>
         <div class="crossfader-section">
           <label>Crossfader</label>
@@ -488,6 +488,11 @@
           <button class="quantize-btn" id="quantize2" onclick="toggleQuantize(1)">Q</button>
           <button class="log-btn" id="logBtn2" onclick="logTrack(1)" disabled>📝 LOG</button>
           <button class="vinyl-mode-btn" id="vinylMode2" onclick="toggleVinylMode(1)" data-tooltip="Vinyl mode — slowdown on stop, scratch sounds">🎵 VINYL</button>
+        </div>
+        <div class="deck-volume-section" style="display:flex;align-items:center;gap:6px;justify-content:center;padding:4px 0">
+          <label style="color:var(--deck2);font-size:9px;font-weight:700">VOL</label>
+          <input type="range" class="vol-fader" id="vol2" min="0" max="1" step="0.01" value="0.85" style="width:80px">
+          <div class="meter" style="height:60px;width:6px"><div class="meter-fill" id="meter2" style="height:0%"></div></div>
         </div>
         <div class="tempo-section">
           <span class="tempo-range-label" id="tempoMin2" style="font-size:9px;color:#555">−8</span>
