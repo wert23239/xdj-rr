@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DJ School — Learn to Mix</title>
+  <link rel="stylesheet" href="learn.css">
+</head>
+<body>
+  <div class="header">
+    <a href="/" class="back-link">← Back to Controller</a>
+    <h1>🎧 DJ School</h1>
+    <span class="level-badge">Level 1: Your First Mix</span>
+  </div>
+
+  <div class="decks-container">
+    <!-- DECK 1 -->
+    <div class="deck" id="deck1-panel">
+      <div class="deck-header deck1-color">DECK 1</div>
+      <div class="track-name" id="track1-name">—</div>
+      <canvas class="waveform" id="waveform1" width="400" height="60"></canvas>
+      <div class="time-display" id="time1">0:00</div>
+      <div class="jog-wheel" id="jog1">
+        <div class="jog-inner">
+          <div class="jog-dot"></div>
+        </div>
+      </div>
+      <div class="deck-controls">
+        <button class="btn cue-btn" id="cue1">CUE</button>
+        <button class="btn play-btn" id="play1">▶ PLAY</button>
+      </div>
+      <div class="eq-section">
+        <label>HI<input type="range" class="eq-knob" id="eq1-hi" min="-12" max="12" value="0" step="0.5"></label>
+        <label>MID<input type="range" class="eq-knob" id="eq1-mid" min="-12" max="12" value="0" step="0.5"></label>
+        <label>LO<input type="range" class="eq-knob" id="eq1-lo" min="-12" max="12" value="0" step="0.5"></label>
+      </div>
+      <div class="tempo-section">
+        <label>TEMPO<input type="range" class="tempo-slider" id="tempo1" min="0.9" max="1.1" value="1" step="0.001"></label>
+        <span class="tempo-display" id="tempo1-display">±0.0%</span>
+      </div>
+    </div>
+
+    <!-- CROSSFADER -->
+    <div class="crossfader-section" id="crossfader-panel">
+      <div class="crossfader-label">CROSSFADER</div>
+      <input type="range" class="crossfader" id="crossfader" min="0" max="1" value="0.5" step="0.01">
+      <div class="crossfader-labels">
+        <span class="deck1-color">◀ Deck 1</span>
+        <span class="deck2-color">Deck 2 ▶</span>
+      </div>
+    </div>
+
+    <!-- DECK 2 -->
+    <div class="deck" id="deck2-panel">
+      <div class="deck-header deck2-color">DECK 2</div>
+      <div class="track-name" id="track2-name">—</div>
+      <canvas class="waveform" id="waveform2" width="400" height="60"></canvas>
+      <div class="time-display" id="time2">0:00</div>
+      <div class="jog-wheel" id="jog2">
+        <div class="jog-inner">
+          <div class="jog-dot"></div>
+        </div>
+      </div>
+      <div class="deck-controls">
+        <button class="btn cue-btn" id="cue2">CUE</button>
+        <button class="btn play-btn" id="play2">▶ PLAY</button>
+      </div>
+      <div class="eq-section">
+        <label>HI<input type="range" class="eq-knob" id="eq2-hi" min="-12" max="12" value="0" step="0.5"></label>
+        <label>MID<input type="range" class="eq-knob" id="eq2-mid" min="-12" max="12" value="0" step="0.5"></label>
+        <label>LO<input type="range" class="eq-knob" id="eq2-lo" min="-12" max="12" value="0" step="0.5"></label>
+      </div>
+      <div class="tempo-section">
+        <label>TEMPO<input type="range" class="tempo-slider" id="tempo2" min="0.9" max="1.1" value="1" step="0.001"></label>
+        <span class="tempo-display" id="tempo2-display">±0.0%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tutorial Overlay -->
+  <div class="tutorial-box" id="tutorial-box">
+    <div class="tutorial-step" id="tutorial-step">Step 1/6</div>
+    <div class="tutorial-text" id="tutorial-text">Loading tracks...</div>
+  </div>
+
+  <script src="learn.js"></script>
+</body>
+</html>

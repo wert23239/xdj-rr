@@ -309,6 +309,7 @@ app.patch('/api/tracklist/:id', async (req, res) => {
 app.use(express.static(__dirname));
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/learn', (req, res) => res.sendFile(path.join(__dirname, 'learn.html')));
 
 app.get('/api/tracks', (req, res) => {
   try {
