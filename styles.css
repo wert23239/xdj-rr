@@ -54,6 +54,9 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-ap
 .track-item{padding:7px 12px;border-bottom:1px solid #1a1a1e;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:background .1s}
 .track-item:hover{background:#1e1e22}
 .track-item .name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;margin-right:8px}
+.track-meta{display:flex;gap:6px;margin-right:8px;flex-shrink:0}
+.track-bpm{font-size:10px;color:#0af;font-weight:600;min-width:28px;text-align:right}
+.track-key{font-size:10px;color:#f80;font-weight:600;min-width:24px;text-align:right}
 .track-item .load-btns{display:flex;gap:4px;opacity:0;transition:opacity .15s}
 .track-item:hover .load-btns{opacity:1}
 .track-item .load-btn{padding:3px 8px;font-size:9px;border-radius:3px;border:1px solid;cursor:pointer;font-weight:700;transition:all .1s}

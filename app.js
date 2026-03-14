@@ -1335,7 +1335,9 @@ function renderTrackList() {
     div.className = 'track-item';
     div.draggable = true;
     div.dataset.trackName = encodeURIComponent(t.name);
-    div.innerHTML = `<span class="name" title="${t.name}">${cn}</span><div class="load-btns"><button class="load-btn d1" onclick="event.stopPropagation();loadToDeck(0,'${encodeURIComponent(t.name)}')">D1</button><button class="load-btn d2" onclick="event.stopPropagation();loadToDeck(1,'${encodeURIComponent(t.name)}')">D2</button></div>`;
+    const bpmTag = t.bpm ? `<span class="track-bpm">${Math.round(t.bpm)}</span>` : '';
+    const keyTag = t.key && t.key !== 'N/A' ? `<span class="track-key">${t.key}</span>` : '';
+    div.innerHTML = `<span class="name" title="${t.name}">${cn}</span><div class="track-meta">${bpmTag}${keyTag}</div><div class="load-btns"><button class="load-btn d1" onclick="event.stopPropagation();loadToDeck(0,'${encodeURIComponent(t.name)}')">D1</button><button class="load-btn d2" onclick="event.stopPropagation();loadToDeck(1,'${encodeURIComponent(t.name)}')">D2</button></div>`;
     div.ondblclick = () => { const freeDeck = !decks[0].buffer ? 0 : !decks[1].buffer ? 1 : 0; loadToDeck(freeDeck, encodeURIComponent(t.name)); };
     div.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', encodeURIComponent(t.name)); e.dataTransfer.effectAllowed = 'copy'; });
     list.appendChild(div);

@@ -318,7 +318,8 @@ app.get('/api/tracks', (req, res) => {
       .map(f => {
         try {
           const stat = fs.statSync(path.join(MUSIC_DIR, f));
-          return { name: f, mtime: stat.mtimeMs, size: stat.size };
+          const cached = readCache(f);
+          return { name: f, mtime: stat.mtimeMs, size: stat.size, bpm: cached?.bpm || null, key: cached?.key || null };
         } catch { return null; }
       })
       .filter(Boolean)
