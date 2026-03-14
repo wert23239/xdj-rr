@@ -324,7 +324,7 @@ app.get('/api/tracks', (req, res) => {
       })
       .filter(Boolean)
       .sort((a, b) => b.mtime - a.mtime)
-      .slice(0, 50);
+      .slice(0, 500);
     res.json(files);
   } catch (e) {
     res.json([]);
