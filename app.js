@@ -524,7 +524,12 @@ class Deck {
     if (this._streamAudio) {
       // Streaming playback via HTML5 Audio element
       this._streamAudio.currentTime = this.offset;
-      this._streamAudio.playbackRate = this.playbackRate;
+      this._streamAudio.playbackRate = this.playbackRate * (this._streamPitchRatio || 1);
+      if (this._streamPitchRatio && this._streamPitchRatio !== 1) {
+        this._streamAudio.preservesPitch = false;
+        this._streamAudio.mozPreservesPitch = false;
+        this._streamAudio.webkitPreservesPitch = false;
+      }
       this._streamAudio.play().catch(() => {});
       this.startTime = actx.currentTime - this.offset / this.playbackRate;
       this.playing = true;
@@ -534,6 +539,7 @@ class Deck {
       this.source = actx.createBufferSource();
       this.source.buffer = this.buffer;
       this.source.playbackRate.value = this.playbackRate;
+      if (deckKeyShift[this.id] !== 0) this.source.detune.value = deckKeyShift[this.id] * 100;
       this.source.connect(this.trimGain);
       this.source.start(0, this.offset);
       this.startTime = actx.currentTime - this.offset / this.playbackRate;
@@ -605,7 +611,7 @@ class Deck {
   setTempo(percent) {
     this.playbackRate = 1 + percent / 100;
     if (this.source) this.source.playbackRate.value = this.playbackRate + this.nudgeAmount;
-    if (this._streamAudio) this._streamAudio.playbackRate = this.playbackRate + this.nudgeAmount;
+    if (this._streamAudio) this._streamAudio.playbackRate = (this.playbackRate + this.nudgeAmount) * (this._streamPitchRatio || 1);
   }
 
   /**
@@ -805,13 +811,13 @@ function nudgeDeck(deckId, dir) {
   const deck = decks[deckId];
   deck.nudgeAmount = dir * 0.02;
   if (deck.source) deck.source.playbackRate.value = deck.playbackRate + deck.nudgeAmount;
-  if (deck._streamAudio) deck._streamAudio.playbackRate = deck.playbackRate + deck.nudgeAmount;
+  if (deck._streamAudio) deck._streamAudio.playbackRate = (deck.playbackRate + deck.nudgeAmount) * (deck._streamPitchRatio || 1);
 }
 function nudgeRelease(deckId) {
   const deck = decks[deckId];
   deck.nudgeAmount = 0;
   if (deck.source) deck.source.playbackRate.value = deck.playbackRate;
-  if (deck._streamAudio) deck._streamAudio.playbackRate = deck.playbackRate;
+  if (deck._streamAudio) deck._streamAudio.playbackRate = deck.playbackRate * (deck._streamPitchRatio || 1);
 }
 
 // ==================== JOG MARKERS ====================
@@ -4102,6 +4108,19 @@ function applyKeyShift(deckId) {
       // Store shifted key for harmonic display purposes
       deck._shiftedKey = shiftedKey;
     }
+  }
+  // Apply actual audio pitch shift
+  if (deck.source && deck.source.detune) {
+    deck.source.detune.value = semitones * 100;
+  }
+  if (deck._streamAudio) {
+    // For streaming audio, use playbackRate pitch shift (preservesPitch=false)
+    deck._streamAudio.preservesPitch = false;
+    deck._streamAudio.mozPreservesPitch = false;
+    deck._streamAudio.webkitPreservesPitch = false;
+    // Apply pitch via playbackRate: ratio = 2^(semitones/12), combined with tempo
+    deck._streamPitchRatio = Math.pow(2, semitones / 12);
+    deck._streamAudio.playbackRate = deck.playbackRate * deck._streamPitchRatio;
   }
 }
 
