@@ -642,6 +642,8 @@ class Deck {
     const sampleRate = this.buffer.sampleRate;
     const len = Math.min(data.length, sampleRate * 30);
     const windowSize = Math.floor(sampleRate * 0.01);
+    // Actual ms per window based on sample rate
+    const actualWindowMs = (windowSize / sampleRate) * 1000;
     const energies = [];
     for (let i = 0; i < len - windowSize; i += windowSize) {
       let sum = 0;
@@ -652,16 +654,16 @@ class Deck {
     for (let i = 1; i < energies.length; i++) {
       onsets[i] = Math.max(0, energies[i] - energies[i - 1]);
     }
-    const minBPM = 60, maxBPM = 180;
-    const windowMs = 10;
-    const minLag = Math.floor(60000 / maxBPM / windowMs);
-    const maxLag = Math.floor(60000 / minBPM / windowMs);
+    const minBPM = 60, maxBPM = 200;
+    const minLag = Math.floor(60000 / maxBPM / actualWindowMs);
+    const maxLag = Math.floor(60000 / minBPM / actualWindowMs);
     const acLen = Math.min(onsets.length, 3000);
     let bestLag = minLag, bestCorr = -Infinity;
     for (let lag = minLag; lag <= Math.min(maxLag, acLen / 2); lag++) {
       let corr = 0, count = 0;
       for (let i = 0; i < acLen - lag; i++) { corr += onsets[i] * onsets[i + lag]; count++; }
       corr /= count;
+      // Check double-lag for harmonic reinforcement
       const doubleLag = lag * 2;
       if (doubleLag < acLen / 2) {
         let corr2 = 0, c2 = 0;
@@ -671,9 +673,22 @@ class Deck {
       }
       if (corr > bestCorr) { bestCorr = corr; bestLag = lag; }
     }
-    let bpm = 60000 / (bestLag * windowMs);
+    let bpm = 60000 / (bestLag * actualWindowMs);
+    // Multi-pass: bring into dance music range (80-180)
     while (bpm > 180) bpm /= 2;
-    while (bpm < 70) bpm *= 2;
+    while (bpm < 80) bpm *= 2;
+    // Harmonic verification: check if half or double tempo has stronger correlation
+    const halfLag = Math.round(bestLag / 2);
+    const dblLag = bestLag * 2;
+    if (halfLag >= minLag) {
+      let hCorr = 0, hc = 0;
+      for (let i = 0; i < acLen - halfLag; i++) { hCorr += onsets[i] * onsets[i + halfLag]; hc++; }
+      hCorr /= hc;
+      if (hCorr > bestCorr * 0.9) {
+        const halfBpm = 60000 / (halfLag * actualWindowMs);
+        if (halfBpm >= 80 && halfBpm <= 180) bpm = halfBpm;
+      }
+    }
     this.bpm = Math.round(bpm * 10) / 10;
   }
 
@@ -1703,8 +1718,29 @@ document.getElementById('play1').onclick = () => decks[0].togglePlay();
 document.getElementById('play2').onclick = () => decks[1].togglePlay();
 document.getElementById('cue1').onclick = () => decks[0].cue();
 document.getElementById('cue2').onclick = () => decks[1].cue();
-document.getElementById('sync1').onclick = () => { decks[0].sync(decks[1]); document.getElementById('sync1').classList.add('active'); setTimeout(() => document.getElementById('sync1').classList.remove('active'), 500); };
-document.getElementById('sync2').onclick = () => { decks[1].sync(decks[0]); document.getElementById('sync2').classList.add('active'); setTimeout(() => document.getElementById('sync2').classList.remove('active'), 500); };
+/** @type {boolean[]} Sync toggle state per deck */
+const syncActive = [false, false];
+
+document.getElementById('sync1').onclick = () => {
+  syncActive[0] = !syncActive[0];
+  const btn = document.getElementById('sync1');
+  if (syncActive[0]) {
+    decks[0].sync(decks[1]);
+    btn.classList.add('sync-active');
+  } else {
+    btn.classList.remove('sync-active', 'sync-flash');
+  }
+};
+document.getElementById('sync2').onclick = () => {
+  syncActive[1] = !syncActive[1];
+  const btn = document.getElementById('sync2');
+  if (syncActive[1]) {
+    decks[1].sync(decks[0]);
+    btn.classList.add('sync-active');
+  } else {
+    btn.classList.remove('sync-active', 'sync-flash');
+  }
+};
 document.getElementById('tempo1').oninput = e => { decks[0].setTempo(parseFloat(e.target.value)); document.getElementById('tempoVal1').textContent = parseFloat(e.target.value).toFixed(1) + '%'; };
 document.getElementById('tempo2').oninput = e => { decks[1].setTempo(parseFloat(e.target.value)); document.getElementById('tempoVal2').textContent = parseFloat(e.target.value).toFixed(1) + '%'; };
 document.getElementById('vol1').oninput = e => decks[0].gainNode.gain.value = parseFloat(e.target.value);
@@ -3650,6 +3686,29 @@ function animate() {
         durEl.textContent = '-' + formatTime(rem);
       } else {
         durEl.textContent = '0:00';
+      }
+    }
+  }
+  // Master BPM display
+  const mbEl = document.getElementById('masterBPM');
+  if (mbEl) {
+    const d0 = decks[0], d1 = decks[1];
+    let masterBpm = 0;
+    if (d0.playing && d1.playing) {
+      masterBpm = syncActive[0] ? d1.bpm : (syncActive[1] ? d0.bpm : d0.bpm);
+    } else if (d0.playing) { masterBpm = d0.bpm; }
+    else if (d1.playing) { masterBpm = d1.bpm; }
+    mbEl.textContent = masterBpm > 0 ? (masterBpm * (d0.playing ? d0.playbackRate : d1.playing ? d1.playbackRate : 1)).toFixed(1) + ' BPM' : '--- BPM';
+  }
+  // Sync maintenance: re-sync if active and flash if drifted
+  for (let si = 0; si < 2; si++) {
+    if (syncActive[si] && decks[si].playing && decks[1 - si].bpm > 0) {
+      const ratio = decks[1 - si].bpm / decks[si].bpm;
+      const currentRatio = decks[si].playbackRate;
+      if (Math.abs(currentRatio - ratio) > 0.005) {
+        document.getElementById('sync' + (si + 1)).classList.add('sync-flash');
+      } else {
+        document.getElementById('sync' + (si + 1)).classList.remove('sync-flash');
       }
     }
   }

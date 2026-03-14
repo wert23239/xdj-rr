@@ -1,6 +1,6 @@
 /**
  * @fileoverview Waveform drawing and analysis for the XDJ-RR controller.
- * Handles overview waveforms, zoomed waveforms, playheads, and beat grids.
+ * Clean, Rekordbox-style gradient waveforms with beat alignment markers.
  */
 
 /** @type {Array<ImageData|null>} Cached waveform image data per deck */
@@ -15,29 +15,24 @@ const WF_COLOR_MODES = ['frequency', 'solid', 'grayscale'];
 /** @type {number[]} Current color mode index per deck */
 let wfColorMode = [0, 0];
 
-/**
- * Gets the RGB color for a waveform sample based on the current color mode.
- * @param {number} deckId - Deck index (0 or 1)
- * @param {object|null} freq - Frequency data {lo, mid, hi} or null
- * @param {number} amplitude - Sample amplitude (0-1)
- * @returns {{r: number, g: number, b: number}} RGB color values
- */
+// Deck color schemes
+const DECK_COLORS = [
+  { bright: '#00aaff', dark: '#003366', r: 0, g: 170, b: 255 },   // Deck 1: Blue
+  { bright: '#ff8800', dark: '#4d2900', r: 255, g: 136, b: 0 }    // Deck 2: Orange
+];
+
 function getWfColor(deckId, freq, amplitude) {
   const mode = WF_COLOR_MODES[wfColorMode[deckId]];
   if (mode === 'frequency' && freq) {
     return { r: Math.floor(60 + freq.lo * 195), g: Math.floor(60 + freq.mid * 195), b: Math.floor(60 + freq.hi * 195) };
   } else if (mode === 'solid') {
-    return deckId === 0 ? { r: 0, g: 170, b: 255 } : { r: 255, g: 136, b: 0 };
+    return { r: DECK_COLORS[deckId].r, g: DECK_COLORS[deckId].g, b: DECK_COLORS[deckId].b };
   } else {
     const v = Math.floor(120 + amplitude * 135);
     return { r: v, g: v, b: v };
   }
 }
 
-/**
- * Cycles through waveform color modes for a deck.
- * @param {number} deckId - Deck index
- */
 function cycleWfColor(deckId) {
   wfColorMode[deckId] = (wfColorMode[deckId] + 1) % WF_COLOR_MODES.length;
   const mode = WF_COLOR_MODES[wfColorMode[deckId]];
@@ -49,20 +44,169 @@ function cycleWfColor(deckId) {
   }
 }
 
-/**
- * Adjusts waveform zoom level for a deck.
- * @param {number} deckId - Deck index
- * @param {number} dir - Direction: 1 for zoom in, -1 for zoom out
- */
 function wfZoom(deckId, dir) {
   wfZoomLevel[deckId] = Math.max(1, Math.min(16, wfZoomLevel[deckId] * (dir > 0 ? 2 : 0.5)));
 }
 
 /**
- * Draws overview waveform from server-provided peaks (no buffer needed).
- * @param {object} deck - The deck object
- * @param {number[]} peaks - Array of peak amplitudes (0-1)
+ * Smooth audio data by averaging neighboring samples into bins.
+ * Returns array of {min, max} for each pixel column.
  */
+function computeSmoothedBins(data, startSample, endSample, numBins) {
+  const sampleRange = endSample - startSample;
+  const samplesPerBin = sampleRange / numBins;
+  const bins = new Array(numBins);
+  // Smoothing window: average across multiple sub-windows
+  for (let i = 0; i < numBins; i++) {
+    const binStart = startSample + Math.floor(i * samplesPerBin);
+    const binEnd = Math.min(startSample + Math.floor((i + 1) * samplesPerBin), endSample);
+    let rmsSum = 0, count = 0, peak = 0;
+    for (let j = binStart; j < binEnd; j++) {
+      const v = data[j] || 0;
+      rmsSum += v * v;
+      count++;
+      const absV = Math.abs(v);
+      if (absV > peak) peak = absV;
+    }
+    const rms = count > 0 ? Math.sqrt(rmsSum / count) : 0;
+    // Blend RMS with peak for smooth but punchy look
+    const amp = rms * 0.6 + peak * 0.4;
+    bins[i] = { amp: Math.min(amp, 1), peak };
+  }
+  // Apply 3-point moving average for extra smoothness
+  const smoothed = new Array(numBins);
+  for (let i = 0; i < numBins; i++) {
+    const prev = i > 0 ? bins[i - 1].amp : bins[i].amp;
+    const next = i < numBins - 1 ? bins[i + 1].amp : bins[i].amp;
+    smoothed[i] = {
+      amp: (prev + bins[i].amp * 2 + next) / 4,
+      peak: bins[i].peak
+    };
+  }
+  return smoothed;
+}
+
+/**
+ * Creates a vertical gradient for waveform fill.
+ */
+function createWaveformGradient(ctx, mid, height, deckId, alpha) {
+  const dc = DECK_COLORS[deckId];
+  const grad = ctx.createLinearGradient(0, mid - height, 0, mid);
+  grad.addColorStop(0, `rgba(${dc.r},${dc.g},${dc.b},${alpha})`);
+  grad.addColorStop(0.4, `rgba(${dc.r},${dc.g},${dc.b},${alpha * 0.7})`);
+  grad.addColorStop(1, `rgba(${Math.floor(dc.r * 0.3)},${Math.floor(dc.g * 0.3)},${Math.floor(dc.b * 0.3)},${alpha * 0.4})`);
+  return grad;
+}
+
+/**
+ * Draws a smooth, gradient-filled waveform on a canvas region.
+ */
+function drawSmoothWaveform(ctx, bins, mid, maxHeight, deckId, canvasWidth) {
+  const dc = DECK_COLORS[deckId];
+  
+  // Draw filled waveform with gradient
+  // Upper half
+  ctx.beginPath();
+  ctx.moveTo(0, mid);
+  for (let i = 0; i < bins.length; i++) {
+    const x = (i / bins.length) * canvasWidth;
+    const h = bins[i].amp * maxHeight;
+    ctx.lineTo(x, mid - h);
+  }
+  ctx.lineTo(canvasWidth, mid);
+  ctx.closePath();
+  
+  const gradUp = ctx.createLinearGradient(0, mid - maxHeight, 0, mid);
+  gradUp.addColorStop(0, `rgba(${dc.r},${dc.g},${dc.b},0.95)`);
+  gradUp.addColorStop(0.5, `rgba(${dc.r},${dc.g},${dc.b},0.6)`);
+  gradUp.addColorStop(1, `rgba(${Math.floor(dc.r*0.2)},${Math.floor(dc.g*0.2)},${Math.floor(dc.b*0.2)},0.15)`);
+  ctx.fillStyle = gradUp;
+  ctx.fill();
+  
+  // Lower half (mirror)
+  ctx.beginPath();
+  ctx.moveTo(0, mid);
+  for (let i = 0; i < bins.length; i++) {
+    const x = (i / bins.length) * canvasWidth;
+    const h = bins[i].amp * maxHeight;
+    ctx.lineTo(x, mid + h);
+  }
+  ctx.lineTo(canvasWidth, mid);
+  ctx.closePath();
+  
+  const gradDown = ctx.createLinearGradient(0, mid, 0, mid + maxHeight);
+  gradDown.addColorStop(0, `rgba(${Math.floor(dc.r*0.2)},${Math.floor(dc.g*0.2)},${Math.floor(dc.b*0.2)},0.15)`);
+  gradDown.addColorStop(0.5, `rgba(${dc.r},${dc.g},${dc.b},0.6)`);
+  gradDown.addColorStop(1, `rgba(${dc.r},${dc.g},${dc.b},0.95)`);
+  ctx.fillStyle = gradDown;
+  ctx.fill();
+  
+  // Subtle glow on peaks - draw bright edge line
+  ctx.beginPath();
+  ctx.moveTo(0, mid);
+  for (let i = 0; i < bins.length; i++) {
+    const x = (i / bins.length) * canvasWidth;
+    const h = bins[i].amp * maxHeight;
+    ctx.lineTo(x, mid - h);
+  }
+  ctx.strokeStyle = `rgba(${Math.min(255, dc.r + 80)},${Math.min(255, dc.g + 80)},${Math.min(255, dc.b + 80)},0.4)`;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  
+  // Lower edge glow
+  ctx.beginPath();
+  ctx.moveTo(0, mid);
+  for (let i = 0; i < bins.length; i++) {
+    const x = (i / bins.length) * canvasWidth;
+    const h = bins[i].amp * maxHeight;
+    ctx.lineTo(x, mid + h);
+  }
+  ctx.strokeStyle = `rgba(${Math.min(255, dc.r + 80)},${Math.min(255, dc.g + 80)},${Math.min(255, dc.b + 80)},0.4)`;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  
+  // Clean center line
+  ctx.strokeStyle = `rgba(${dc.r},${dc.g},${dc.b},0.3)`;
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  ctx.moveTo(0, mid);
+  ctx.lineTo(canvasWidth, mid);
+  ctx.stroke();
+}
+
+/**
+ * Draws beat grid lines and beat alignment markers.
+ */
+function drawBeatGrid(ctx, deck, canvasWidth, canvasHeight, startTime, endTime) {
+  if (deck.bpm <= 0) return;
+  const beatDuration = 60 / deck.bpm;
+  const duration = endTime - startTime;
+  const firstBeat = Math.ceil(startTime / beatDuration);
+  const lastBeat = Math.floor(endTime / beatDuration);
+  
+  for (let bt = firstBeat; bt <= lastBeat; bt++) {
+    const btTime = bt * beatDuration;
+    const bx = ((btTime - startTime) / duration) * canvasWidth;
+    
+    if (bt % 4 === 0) {
+      // Downbeat: RED beat alignment marker
+      ctx.strokeStyle = 'rgba(255, 40, 40, 0.6)';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(bx, 0); ctx.lineTo(bx, canvasHeight); ctx.stroke();
+      // Small triangle at top
+      ctx.fillStyle = 'rgba(255, 40, 40, 0.5)';
+      ctx.beginPath(); ctx.moveTo(bx - 3, 0); ctx.lineTo(bx + 3, 0); ctx.lineTo(bx, 5); ctx.fill();
+    } else {
+      // Regular beat: subtle tick
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath(); ctx.moveTo(bx, 0); ctx.lineTo(bx, canvasHeight); ctx.stroke();
+    }
+  }
+}
+
+// ======================== OVERVIEW WAVEFORM ========================
+
 function drawOverviewWaveformFromPeaks(deck, peaks) {
   const canvas = document.getElementById('ovCanvas' + (deck.id + 1));
   const ctx = canvas.getContext('2d');
@@ -71,23 +215,27 @@ function drawOverviewWaveformFromPeaks(deck, peaks) {
   const mid = canvas.height / 2;
   ctx.fillStyle = '#080808';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  const color = deck.id === 0 ? { r: 0, g: 170, b: 255 } : { r: 255, g: 136, b: 0 };
-  for (let i = 0; i < canvas.width; i++) {
-    const peakIdx = Math.floor((i / canvas.width) * peaks.length);
+  
+  // Smooth peaks into bins
+  const numBins = canvas.width;
+  const bins = [];
+  for (let i = 0; i < numBins; i++) {
+    const peakIdx = Math.floor((i / numBins) * peaks.length);
     const amp = peaks[Math.min(peakIdx, peaks.length - 1)] || 0;
-    const h = amp * mid;
-    const alpha = 0.4 + amp * 0.6;
-    ctx.fillStyle = `rgba(${color.r},${color.g},${color.b},${alpha})`;
-    ctx.fillRect(i, mid - h, 1, h * 2);
+    bins.push({ amp, peak: amp });
   }
+  // 3-point smooth
+  const smoothed = [];
+  for (let i = 0; i < numBins; i++) {
+    const prev = i > 0 ? bins[i - 1].amp : bins[i].amp;
+    const next = i < numBins - 1 ? bins[i + 1].amp : bins[i].amp;
+    smoothed.push({ amp: (prev + bins[i].amp * 2 + next) / 4, peak: bins[i].peak });
+  }
+  
+  drawSmoothWaveform(ctx, smoothed, mid, mid * 0.9, deck.id, canvas.width);
   deck._ovCache = ctx.getImageData(0, 0, canvas.width, canvas.height);
 }
 
-/**
- * Draws static waveform from server-provided peaks (no buffer needed).
- * @param {object} deck - The deck object
- * @param {number[]} peaks - Array of peak amplitudes (0-1)
- */
 function drawStaticWaveformFromPeaks(deck, peaks) {
   const canvas = document.getElementById('wfCanvas' + (deck.id + 1));
   const ctx = canvas.getContext('2d');
@@ -96,23 +244,32 @@ function drawStaticWaveformFromPeaks(deck, peaks) {
   const mid = canvas.height / 2;
   ctx.fillStyle = '#0a0a0a';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  const color = deck.id === 0 ? { r: 0, g: 170, b: 255 } : { r: 255, g: 136, b: 0 };
-  for (let i = 0; i < canvas.width; i++) {
-    const peakIdx = Math.floor((i / canvas.width) * peaks.length);
+  
+  const numBins = canvas.width;
+  const bins = [];
+  for (let i = 0; i < numBins; i++) {
+    const peakIdx = Math.floor((i / numBins) * peaks.length);
     const amp = peaks[Math.min(peakIdx, peaks.length - 1)] || 0;
-    const h = amp * mid;
-    const alpha = 0.3 + amp * 0.7;
-    ctx.fillStyle = `rgba(${color.r},${color.g},${color.b},${alpha})`;
-    ctx.fillRect(i, mid - h, 1, h * 2);
+    bins.push({ amp, peak: amp });
   }
+  const smoothed = [];
+  for (let i = 0; i < numBins; i++) {
+    const prev = i > 0 ? bins[i - 1].amp : bins[i].amp;
+    const next = i < numBins - 1 ? bins[i + 1].amp : bins[i].amp;
+    smoothed.push({ amp: (prev + bins[i].amp * 2 + next) / 4, peak: bins[i].peak });
+  }
+  
+  drawSmoothWaveform(ctx, smoothed, mid, mid * 0.9, deck.id, canvas.width);
+  
+  // Beat grid
+  if (deck.bpm > 0 && deck.buffer) {
+    drawBeatGrid(ctx, deck, canvas.width, canvas.height, 0, deck.buffer.duration);
+  }
+  
   wfCache[deck.id] = ctx.getImageData(0, 0, canvas.width, canvas.height);
   deck._wfDrawn = true;
 }
 
-/**
- * Draws the overview waveform for a deck (full track, small display).
- * @param {object} deck - The deck object with buffer and wfFreqData
- */
 function drawOverviewWaveform(deck) {
   const canvas = document.getElementById('ovCanvas' + (deck.id + 1));
   const ctx = canvas.getContext('2d');
@@ -120,31 +277,16 @@ function drawOverviewWaveform(deck) {
   canvas.height = canvas.offsetHeight * 2;
   if (!deck.buffer) { ctx.clearRect(0, 0, canvas.width, canvas.height); return; }
   const data = deck.buffer.getChannelData(0);
-  const step = Math.ceil(data.length / canvas.width);
   const mid = canvas.height / 2;
   ctx.fillStyle = '#080808';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  for (let i = 0; i < canvas.width; i++) {
-    let min = 1, max = -1;
-    for (let j = 0; j < step; j++) {
-      const d = data[(i * step) + j] || 0;
-      if (d < min) min = d;
-      if (d > max) max = d;
-    }
-    const sliceIdx = Math.floor((i / canvas.width) * (deck.wfFreqData ? deck.wfFreqData.length : 1));
-    const freq = deck.wfFreqData ? deck.wfFreqData[Math.min(sliceIdx, deck.wfFreqData.length - 1)] : null;
-    const amplitude = Math.abs(max - min);
-    const c = getWfColor(deck.id, freq, amplitude);
-    const alpha = 0.4 + amplitude * 0.6;
-    ctx.fillStyle = `rgba(${c.r},${c.g},${c.b},${alpha})`;
-    ctx.fillRect(i, mid + min * mid, 1, Math.max(1, (max - min) * mid));
-  }
+  
+  const bins = computeSmoothedBins(data, 0, data.length, canvas.width);
+  drawSmoothWaveform(ctx, bins, mid, mid * 0.9, deck.id, canvas.width);
+  
   deck._ovCache = ctx.getImageData(0, 0, canvas.width, canvas.height);
 }
 
-/**
- * Draws overview playheads, dim played portion, and intro/outro markers.
- */
 function drawOverviewPlayhead() {
   for (const deck of decks) {
     const canvas = document.getElementById('ovCanvas' + (deck.id + 1));
@@ -153,10 +295,18 @@ function drawOverviewPlayhead() {
     ctx.putImageData(deck._ovCache, 0, 0);
     const progress = deck.getCurrentTime() / deck.buffer.duration;
     const x = progress * canvas.width;
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(x, 0, 2, canvas.height);
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    
+    // Played portion: darker overlay
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
     ctx.fillRect(0, 0, x, canvas.height);
+    
+    // Playhead: white with glow
+    ctx.shadowColor = '#ffffff';
+    ctx.shadowBlur = 4;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x - 1, 0, 3, canvas.height);
+    ctx.shadowBlur = 0;
+    
     // 16-bar beat jump markers
     if (deck.bpm > 0) {
       const beatDur = 60 / deck.bpm;
@@ -167,7 +317,6 @@ function drawOverviewPlayhead() {
         const mx = (s * sixteenBarDur / deck.buffer.duration) * canvas.width;
         ctx.fillStyle = 'rgba(255,255,0,0.35)';
         ctx.fillRect(mx, 0, 1, canvas.height);
-        // Small triangle marker at top
         ctx.fillStyle = 'rgba(255,255,0,0.5)';
         ctx.beginPath(); ctx.moveTo(mx - 3, 0); ctx.lineTo(mx + 3, 0); ctx.lineTo(mx, 5); ctx.fill();
       }
@@ -188,10 +337,8 @@ function drawOverviewPlayhead() {
   }
 }
 
-/**
- * Draws the static (full) waveform for a deck with beat grid.
- * @param {object} deck - The deck object
- */
+// ======================== STATIC (ZOOMED) WAVEFORM ========================
+
 function drawStaticWaveform(deck) {
   const canvas = document.getElementById('wfCanvas' + (deck.id + 1));
   const ctx = canvas.getContext('2d');
@@ -199,50 +346,24 @@ function drawStaticWaveform(deck) {
   canvas.height = canvas.offsetHeight * 2;
   if (!deck.buffer) { ctx.clearRect(0, 0, canvas.width, canvas.height); wfCache[deck.id] = null; return; }
   const data = deck.buffer.getChannelData(0);
-  const step = Math.ceil(data.length / canvas.width);
   const mid = canvas.height / 2;
   ctx.fillStyle = '#0a0a0a';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  for (let i = 0; i < canvas.width; i++) {
-    let min = 1, max = -1;
-    for (let j = 0; j < step; j++) {
-      const d = data[(i * step) + j] || 0;
-      if (d < min) min = d;
-      if (d > max) max = d;
-    }
-    const sliceIdx = Math.floor((i / canvas.width) * (deck.wfFreqData ? deck.wfFreqData.length : 1));
-    const freq = deck.wfFreqData ? deck.wfFreqData[Math.min(sliceIdx, deck.wfFreqData.length - 1)] : null;
-    const amplitude = Math.abs(max - min);
-    const c = getWfColor(deck.id, freq, amplitude);
-    const alpha = 0.3 + amplitude * 0.7;
-    ctx.fillStyle = `rgba(${c.r},${c.g},${c.b},${alpha})`;
-    ctx.fillRect(i, mid + min * mid, 1, Math.max(1, (max - min) * mid));
-  }
-  // Beat grid
+  
+  const bins = computeSmoothedBins(data, 0, data.length, canvas.width);
+  drawSmoothWaveform(ctx, bins, mid, mid * 0.9, deck.id, canvas.width);
+  
+  // Beat grid with alignment markers
   if (deck.bpm > 0) {
-    const beatDuration = 60 / deck.bpm;
-    const totalBeats = deck.buffer.duration / beatDuration;
-    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-    ctx.lineWidth = 1;
-    for (let b = 0; b < totalBeats; b++) {
-      const bx = (b * beatDuration / deck.buffer.duration) * canvas.width;
-      if (b % 4 === 0) {
-        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
-        ctx.beginPath(); ctx.moveTo(bx, 0); ctx.lineTo(bx, canvas.height); ctx.stroke();
-        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-      } else {
-        ctx.beginPath(); ctx.moveTo(bx, 0); ctx.lineTo(bx, canvas.height); ctx.stroke();
-      }
-    }
+    drawBeatGrid(ctx, deck, canvas.width, canvas.height, 0, deck.buffer.duration);
   }
+  
   wfCache[deck.id] = ctx.getImageData(0, 0, canvas.width, canvas.height);
   deck._wfDrawn = true;
 }
 
-/**
- * Draws playheads, hot cues, and loop overlays on the zoomed waveform.
- * Supports zoom levels for scrolling view.
- */
+// ======================== PLAYHEAD + ZOOMED VIEW ========================
+
 function drawPlayhead() {
   for (const deck of decks) {
     const canvas = document.getElementById('wfCanvas' + (deck.id + 1));
@@ -254,10 +375,17 @@ function drawPlayhead() {
     if (zoom <= 1 && wfCache[deck.id]) {
       ctx.putImageData(wfCache[deck.id], 0, 0);
       const x = progress * canvas.width;
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(x, 0, 2, canvas.height);
+      
+      // Played portion overlay
       ctx.fillStyle = 'rgba(0,0,0,0.3)';
       ctx.fillRect(0, 0, x, canvas.height);
+      
+      // Playhead: bright white 3px with glow
+      ctx.shadowColor = '#ffffff';
+      ctx.shadowBlur = 6;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(x - 1, 0, 3, canvas.height);
+      ctx.shadowBlur = 0;
     } else {
       // Zoomed view centered on playhead
       const data = deck.buffer.getChannelData(0);
@@ -268,48 +396,32 @@ function drawPlayhead() {
       if (endFrac > 1) { startFrac -= (endFrac - 1); endFrac = 1; startFrac = Math.max(0, startFrac); }
       const startSample = Math.floor(startFrac * data.length);
       const endSample = Math.floor(endFrac * data.length);
-      const sampleRange = endSample - startSample;
-      const step = Math.max(1, Math.ceil(sampleRange / canvas.width));
       const mid = canvas.height / 2;
       ctx.fillStyle = '#0a0a0a';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      for (let i = 0; i < canvas.width; i++) {
-        const sampleStart = startSample + Math.floor(i * sampleRange / canvas.width);
-        let min = 1, max = -1;
-        for (let j = 0; j < step; j++) {
-          const idx = sampleStart + j;
-          if (idx >= data.length) break;
-          if (data[idx] < min) min = data[idx];
-          if (data[idx] > max) max = data[idx];
-        }
-        const sliceIdx = Math.floor((sampleStart / data.length) * (deck.wfFreqData ? deck.wfFreqData.length : 1));
-        const freq = deck.wfFreqData ? deck.wfFreqData[Math.min(sliceIdx, deck.wfFreqData.length - 1)] : null;
-        const amplitude = Math.abs(max - min);
-        const c = getWfColor(deck.id, freq, amplitude);
-        const alpha = 0.3 + amplitude * 0.7;
-        ctx.fillStyle = `rgba(${c.r},${c.g},${c.b},${alpha})`;
-        ctx.fillRect(i, mid + min * mid, 1, Math.max(1, (max - min) * mid));
-      }
+      
+      const bins = computeSmoothedBins(data, startSample, endSample, canvas.width);
+      drawSmoothWaveform(ctx, bins, mid, mid * 0.9, deck.id, canvas.width);
+      
       // Beat grid in zoomed view
       if (deck.bpm > 0) {
-        const beatDuration = 60 / deck.bpm;
         const startTime = startFrac * deck.buffer.duration;
         const endTime = endFrac * deck.buffer.duration;
-        const firstBeat = Math.ceil(startTime / beatDuration);
-        const lastBeat = Math.floor(endTime / beatDuration);
-        for (let bt = firstBeat; bt <= lastBeat; bt++) {
-          const btTime = bt * beatDuration;
-          const bx = ((btTime / deck.buffer.duration - startFrac) / visibleFraction) * canvas.width;
-          ctx.strokeStyle = bt % 4 === 0 ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.08)';
-          ctx.lineWidth = 1;
-          ctx.beginPath(); ctx.moveTo(bx, 0); ctx.lineTo(bx, canvas.height); ctx.stroke();
-        }
+        drawBeatGrid(ctx, deck, canvas.width, canvas.height, startTime, endTime);
       }
+      
       const playheadX = ((progress - startFrac) / visibleFraction) * canvas.width;
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(playheadX, 0, 2, canvas.height);
+      
+      // Played portion overlay
       ctx.fillStyle = 'rgba(0,0,0,0.3)';
       ctx.fillRect(0, 0, playheadX, canvas.height);
+      
+      // Playhead with glow
+      ctx.shadowColor = '#ffffff';
+      ctx.shadowBlur = 6;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(playheadX - 1, 0, 3, canvas.height);
+      ctx.shadowBlur = 0;
     }
 
     // Hot cues overlay

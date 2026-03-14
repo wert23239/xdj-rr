@@ -1139,6 +1139,11 @@ body{transition:background 0.3s ease,color 0.3s ease}
   /* ---- Sampler pads ---- */
   .sampler-pad{width:60px;height:44px;font-size:9px;border-radius:6px}
   
+  /* ---- Sync active/flash ---- */
+  .sync-active{background:#00ff88!important;color:#000!important;box-shadow:0 0 12px rgba(0,255,136,0.6)!important}
+  .sync-flash{animation:syncFlash 0.4s ease 3}
+  @keyframes syncFlash{0%,100%{box-shadow:0 0 12px rgba(0,255,136,0.6)}50%{box-shadow:0 0 20px rgba(255,100,0,0.9)}}
+
   /* ---- BPM display ---- */
   .bpm-display{font-size:18px}
   
