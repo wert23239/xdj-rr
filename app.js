@@ -448,6 +448,13 @@ class Deck {
     updateMarquee(this.id);
     updateHarmonicDisplay();
 
+    // Auto-sync: if the other deck is playing, match its effective BPM
+    const otherIdx = 1 - this.id;
+    const other = decks[otherIdx];
+    if (other && other.playing && other.bpm > 0 && this.bpm > 0) {
+      this.sync(other);
+    }
+
     // If streaming failed entirely, try full buffer decode synchronously (will throw on failure)
     if (!this._streamAudio) {
       await this._decodeFullBuffer(url, filename, cachedInfo);
@@ -474,7 +481,15 @@ class Deck {
       const needsBPM = !cachedInfo || !cachedInfo.bpm || cachedInfo.bpm <= 0;
       const needsKey = !cachedInfo || !cachedInfo.key;
 
-      if (needsBPM) this.detectBPM();
+      if (needsBPM) {
+        this.detectBPM();
+        // Auto-sync after late BPM detection
+        const otherIdx = 1 - this.id;
+        const other = decks[otherIdx];
+        if (other && other.playing && other.bpm > 0 && this.bpm > 0) {
+          this.sync(other);
+        }
+      }
       if (needsKey) {
         const key = detectKey(this);
         deckKeys[this.id] = key;
@@ -729,8 +744,9 @@ class Deck {
    */
   sync(otherDeck) {
     if (!otherDeck.bpm || !this.bpm) return;
-    const ratio = otherDeck.bpm / this.bpm;
-    const tempoPercent = (ratio - 1) * 100;
+    // Match the other deck's EFFECTIVE BPM (base * playbackRate), not just base
+    const targetBpm = otherDeck.bpm * otherDeck.playbackRate;
+    const tempoPercent = (targetBpm / this.bpm - 1) * 100;
     this.setTempo(tempoPercent);
     const el = document.getElementById('tempo' + (this.id + 1));
     el.value = Math.max(-8, Math.min(8, tempoPercent));
@@ -3766,10 +3782,9 @@ function animate() {
   for (let si = 0; si < 2; si++) {
     if (syncActive[si] && decks[si].playing && decks[1 - si].bpm > 0 && decks[si].bpm > 0) {
       const other = decks[1 - si];
-      // Keep tempo locked
-      const ratio = other.bpm / decks[si].bpm;
-      const currentRatio = decks[si].playbackRate;
-      if (Math.abs(currentRatio - ratio) > 0.002) {
+      // Keep tempo locked to other deck's effective BPM
+      const targetRate = (other.bpm * other.playbackRate) / decks[si].bpm;
+      if (Math.abs(decks[si].playbackRate - targetRate) > 0.002) {
         decks[si].sync(other);
       }
       // Beat phase correction (nudge if drifting)
