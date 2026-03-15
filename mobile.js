@@ -45,17 +45,9 @@ function toggleMobileBrowser() {
   }
   document.getElementById('mBrowser').classList.toggle('active', mobileBrowserOpen);
   
-  // Close with backdrop tap
-  if (mobileBrowserOpen) {
-    const backdrop = document.createElement('div');
-    backdrop.className = 'mobile-backdrop';
-    backdrop.id = 'mobileBrowserBackdrop';
-    backdrop.onclick = () => { toggleMobileBrowser(); };
-    document.body.appendChild(backdrop);
-  } else {
-    const bd = document.getElementById('mobileBrowserBackdrop');
-    if (bd) bd.remove();
-  }
+  // No backdrop needed — browser overlay is fullscreen with opaque background
+  const oldBd = document.getElementById('mobileBrowserBackdrop');
+  if (oldBd) oldBd.remove();
 }
 
 function toggleMobileMixer() {

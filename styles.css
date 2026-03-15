@@ -1063,21 +1063,26 @@ body{transition:background 0.3s ease,color 0.3s ease}
 /* Playlist sidebar */
 .playlist-item{padding:8px 10px;cursor:pointer;font-size:11px;color:#888;border-bottom:1px solid #1a1a1e;display:flex;justify-content:space-between;align-items:center;transition:background .1s}
 .playlist-item:hover{background:#1e1e22;color:#ccc}
+.sync-active{background:#00ff88!important;color:#000!important;box-shadow:0 0 12px rgba(0,255,136,0.6)!important;border-color:#00ff88!important}
+.sync-flash{animation:syncFlash 0.4s ease infinite}
+@keyframes syncFlash{0%,100%{box-shadow:0 0 12px rgba(0,255,136,0.6)}50%{box-shadow:0 0 20px rgba(255,100,0,0.9)}}
 .playlist-item.active{background:#1a2a3a;color:#0af;border-left:2px solid #0af}
+.playlist-item.featured{border-left:2px solid #f80}
+.playlist-item.featured .pl-badge{display:block;font-size:9px;color:#f80;margin-top:2px;letter-spacing:0.5px}
 .pl-count{font-size:9px;color:#555;font-family:monospace}
 
 /* Deck channel faders */
-.deck-ch-fader{position:absolute;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;z-index:5;padding:10px 8px;background:linear-gradient(180deg,#1a1a1e 0%,#131315 100%);border-radius:8px;border:1px solid #2a2a2e;box-shadow:0 2px 8px rgba(0,0,0,0.4)}
-.deck-ch-fader-right{right:8px}
-.deck-ch-fader-left{left:8px}
+.deck-ch-fader{position:absolute;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;z-index:5;padding:12px 10px;background:linear-gradient(180deg,#1a1a1e 0%,#131315 100%);border-radius:8px;border:1px solid #2a2a2e;box-shadow:0 2px 8px rgba(0,0,0,0.4)}
+.deck-ch-fader-right{right:-30px}
+.deck-ch-fader-left{left:-30px}
 .vol-fader-vertical{writing-mode:vertical-lr;direction:rtl;width:20px;height:120px;-webkit-appearance:slider-vertical;appearance:slider-vertical;cursor:ns-resize}
 
 @media (pointer: coarse) {
   .track-item .load-btns{opacity:1}
   .track-item{padding:12px}
   .track-item .load-btn{padding:8px 14px;font-size:12px;border-radius:5px;-webkit-tap-highlight-color:transparent}
-  .load-btn.d1{background:var(--deck1);color:#000}
-  .load-btn.d2{background:var(--deck2);color:#000}
+  .load-btn.d1{background:#0af;color:#000;border-color:#0af}
+  .load-btn.d2{background:#f80;color:#000;border-color:#f80}
 }
 @media (max-width: 900px) {
   .browser{width:180px}
@@ -1124,6 +1129,9 @@ body{transition:background 0.3s ease,color 0.3s ease}
   .browser.mobile-browser-overlay .load-btn{padding:8px 16px;font-size:12px;min-height:44px;display:flex;align-items:center;justify-content:center}
   .browser.mobile-browser-overlay .sort-btn{padding:6px 12px;font-size:12px;min-height:36px}
   .browser.mobile-browser-overlay .sort-controls{padding:8px 16px}
+  .browser.mobile-browser-overlay .browser-content{flex-direction:column}
+  .browser.mobile-browser-overlay .playlist-sidebar{width:100%;max-height:40vh;border-right:none;border-bottom:1px solid #2a2a2e;flex-shrink:0}
+  .browser.mobile-browser-overlay .playlist-sidebar.hidden{display:none}
 
   /* ---- Track list normal (hidden on mobile until overlay) ---- */
   .track-list{display:flex;flex-direction:column;overflow-y:auto}
@@ -1143,7 +1151,7 @@ body{transition:background 0.3s ease,color 0.3s ease}
   .meter{height:60px}
 
   /* ---- Mobile backdrop ---- */
-  .mobile-backdrop{display:block;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:650}
+  .mobile-backdrop{display:block;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:650}
 
   /* ---- Waveforms compact ---- */
   .waveforms{height:70px}

@@ -7,7 +7,7 @@
 const wfCache = [null, null];
 
 /** @type {number[]} Zoom level per deck (1 = full track) */
-let wfZoomLevel = [1, 1];
+let wfZoomLevel = [8, 8];
 
 /** @type {string[]} Available waveform color modes */
 const WF_COLOR_MODES = ['frequency', 'solid', 'grayscale'];

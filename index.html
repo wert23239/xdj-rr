@@ -77,14 +77,14 @@
   <div class="browser" id="browserPanel">
     <div class="browser-header">Track Browser</div>
     <div class="search-box"><input type="text" id="trackSearch" placeholder="Search tracks..." oninput="filterTracks(this.value)"></div>
-    <div class="sort-controls"><label>Sort:</label><button class="sort-btn active" data-sort="name" onclick="sortTracks('name',this)">Name</button><button class="sort-btn" data-sort="bpm" onclick="sortTracks('bpm',this)">BPM</button><button class="sort-btn" data-sort="key" onclick="sortTracks('key',this)">Key</button><button class="sort-btn" data-sort="date" onclick="sortTracks('date',this)">Date</button></div>
+    <div class="sort-controls"><label>Sort:</label><button class="sort-btn" data-sort="name" onclick="sortTracks('name',this)">Name</button><button class="sort-btn active" data-sort="bpm" onclick="sortTracks('bpm',this)">BPM</button><button class="sort-btn" data-sort="key" onclick="sortTracks('key',this)">Key</button><button class="sort-btn" data-sort="date" onclick="sortTracks('date',this)">Date</button></div>
     <div class="playlist-header" id="playlistHeader" style="display:none;padding:6px 12px;background:#1a1a1e;align-items:center;gap:8px;border-bottom:1px solid #2a2a2e">
       <button onclick="showPlaylist(null)" style="background:none;border:1px solid #444;color:#aaa;border-radius:4px;padding:3px 8px;cursor:pointer;font-size:10px">← Back</button>
       <span class="playlist-name" style="font-size:12px;font-weight:700;color:#ccc"></span>
     </div>
-    <div class="browser-content" style="display:flex;flex:1;min-height:0;overflow:hidden">
-      <div class="playlist-sidebar" id="playlistList" style="width:160px;overflow-y:auto;border-right:1px solid #2a2a2e;flex-shrink:0"></div>
-      <div class="track-list" id="trackList" style="flex:1;overflow-y:auto"></div>
+    <div class="browser-content" style="flex:1;min-height:0;overflow:hidden;position:relative">
+      <div class="playlist-sidebar" id="playlistList" style="width:100%;height:100%;overflow-y:auto"></div>
+      <div class="track-list" id="trackList" style="width:100%;height:100%;overflow-y:auto;display:none"></div>
     </div>
     <div class="suggested-next-panel" id="suggestedNextPanel" style="display:none">
       <div class="suggested-next-header">🎯 Suggested Next</div>
@@ -386,7 +386,7 @@
       <div class="deck d2" id="deckEl2" style="position:relative">
         <div class="deck-ch-fader deck-ch-fader-left">
           <label style="color:var(--deck2);font-size:8px;font-weight:700">CH2</label>
-          <input type="range" class="vol-fader vol-fader-vertical" id="vol2" min="0" max="1" step="0.01" value="0.85" orient="vertical">
+          <input type="range" class="vol-fader vol-fader-vertical" id="vol2" min="0" max="1" step="0.01" value="0.25" orient="vertical">
           <div class="meter" style="height:120px;width:5px"><div class="meter-fill" id="meter2" style="height:0%"></div></div>
         </div>
         <div class="deck-label-big">DECK 2</div>
@@ -652,7 +652,7 @@
 <script src="/tracklist.js"></script>
 <script src="/sampler.js"></script>
 <script src="/app.js"></script>
-<script src="/top100.js" defer></script>
+<!-- top100 removed -->
 <script src="/discover.js" defer></script>
 <script src="/midi.js" defer></script>
 <script src="/mobile.js" defer></script>

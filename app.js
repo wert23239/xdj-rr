@@ -430,7 +430,7 @@ class Deck {
     }
 
     // Use cached BPM/key if available
-    if (cachedInfo && cachedInfo.bpm) {
+    if (cachedInfo && cachedInfo.bpm && cachedInfo.bpm > 0) {
       this.bpm = cachedInfo.bpm;
     }
     if (cachedInfo && cachedInfo.key) {
@@ -471,7 +471,7 @@ class Deck {
       this.buffer = await actx.decodeAudioData(arrayBuf);
 
       // Only analyze if not cached
-      const needsBPM = !cachedInfo || !cachedInfo.bpm;
+      const needsBPM = !cachedInfo || !cachedInfo.bpm || cachedInfo.bpm <= 0;
       const needsKey = !cachedInfo || !cachedInfo.key;
 
       if (needsBPM) this.detectBPM();
@@ -520,6 +520,21 @@ class Deck {
     if (this.playing) return;
     if (!this.buffer && !this._streamAudio) return;
     actx.resume();
+
+    // Beat-snap: if sync is active and other deck is playing, align beat phase
+    const otherIdx = 1 - this.id;
+    if (syncActive[this.id] && decks[otherIdx].playing && decks[otherIdx].bpm > 0 && this.bpm > 0) {
+      this.sync(decks[otherIdx]);
+      const otherBeatLen = 60 / (decks[otherIdx].bpm * decks[otherIdx].playbackRate);
+      const otherPhase = (decks[otherIdx].getCurrentTime() % otherBeatLen) / otherBeatLen;
+      const myBeatLen = 60 / (this.bpm * this.playbackRate);
+      const myPhase = (this.offset % myBeatLen) / myBeatLen;
+      let phaseDiff = otherPhase - myPhase;
+      if (phaseDiff > 0.5) phaseDiff -= 1;
+      if (phaseDiff < -0.5) phaseDiff += 1;
+      this.offset += phaseDiff * myBeatLen;
+      if (this.offset < 0) this.offset += myBeatLen;
+    }
 
     if (this._streamAudio) {
       // Streaming playback via HTML5 Audio element
@@ -1326,7 +1341,7 @@ applyTheme();
 let allTracks = [];
 let rbLibrary = [];
 let rbPlaylists = [];
-let currentSort = 'name';
+let currentSort = 'bpm';
 let currentPlaylist = null; // null = all tracks
 
 function sortTracks(by, btn) {
@@ -1338,22 +1353,29 @@ function sortTracks(by, btn) {
 
 function showPlaylist(name) {
   currentPlaylist = name;
-  renderTrackList();
-  // Update playlist header
+  const plPanel = document.getElementById('playlistList');
+  const trPanel = document.getElementById('trackList');
   const header = document.getElementById('playlistHeader');
-  if (header) {
-    if (name) {
-      header.style.display = 'flex';
-      header.querySelector('.playlist-name').textContent = name;
-    } else {
-      header.style.display = 'none';
-    }
+  if (name) {
+    // Show tracks, hide playlists
+    plPanel.style.display = 'none';
+    trPanel.style.display = '';
+    const displayName = name === '__all__' ? 'All Tracks' : name;
+    if (header) { header.style.display = 'flex'; header.querySelector('.playlist-name').textContent = displayName; }
+    renderTrackList();
+  } else {
+    // Show playlists, hide tracks
+    plPanel.style.display = '';
+    trPanel.style.display = 'none';
+    if (header) header.style.display = 'none';
+    const searchBox = document.getElementById('trackSearch');
+    if (searchBox) searchBox.value = '';
   }
 }
 
 function renderTrackList() {
   let tracks;
-  if (currentPlaylist) {
+  if (currentPlaylist && currentPlaylist !== '__all__') {
     const pl = rbPlaylists.find(p => p.name === currentPlaylist);
     if (pl) {
       tracks = pl.tracks.map(fn => rbLibrary.find(t => t.filename === fn) || { name: fn, filename: fn, title: cleanTrackName(fn), artist: '', bpm: 0, key: '' }).map(t => ({ name: t.filename, bpm: t.bpm, key: t.key, title: t.title, artist: t.artist }));
@@ -1382,7 +1404,17 @@ function renderTrackList() {
     div.className = 'track-item';
     div.draggable = true;
     div.dataset.trackName = encodeURIComponent(t.name);
-    const bpmTag = t.bpm ? `<span class="track-bpm">${Math.round(t.bpm)}</span>` : '';
+    // Color-coded BPM based on reference deck
+    let refBPM = null;
+    for (let i = 0; i < 2; i++) { if (decks[i].playing && decks[i].bpm) { refBPM = decks[i].bpm; break; } }
+    if (!refBPM) { for (let i = 0; i < 2; i++) { if (decks[i].bpm) { refBPM = decks[i].bpm; break; } } }
+    let bpmTag = '';
+    const bpmVal = t.bpm || trackBPMCache[t.name];
+    if (bpmVal) {
+      let colorClass = 'bpm-neutral';
+      if (refBPM) { const diff = Math.abs(bpmVal - refBPM); colorClass = diff < 3 ? 'bpm-green' : diff < 8 ? 'bpm-yellow' : 'bpm-red'; }
+      bpmTag = `<span class="track-bpm ${colorClass}">${Math.round(bpmVal)}</span>`;
+    }
     const keyTag = t.key && t.key !== 'N/A' && t.key ? `<span class="track-key">${t.key}</span>` : '';
     div.innerHTML = `<span class="name" title="${t.name}">${displayName}</span><div class="track-meta">${bpmTag}${keyTag}</div><div class="load-btns"><button class="load-btn d1" onclick="event.stopPropagation();loadToDeck(0,'${encodeURIComponent(t.name)}')">D1</button><button class="load-btn d2" onclick="event.stopPropagation();loadToDeck(1,'${encodeURIComponent(t.name)}')">D2</button></div>`;
     div.ondblclick = () => { const freeDeck = !decks[0].buffer ? 0 : !decks[1].buffer ? 1 : 0; loadToDeck(freeDeck, encodeURIComponent(t.name)); };
@@ -1391,7 +1423,22 @@ function renderTrackList() {
   });
 }
 
-function filterTracks(query) { renderTrackList(); }
+function filterTracks(query) {
+  if (query && !currentPlaylist) {
+    // When searching from playlist view, show all tracks filtered
+    currentPlaylist = '__all__';
+    document.getElementById('playlistList').style.display = 'none';
+    document.getElementById('trackList').style.display = '';
+    const header = document.getElementById('playlistHeader');
+    if (header) { header.style.display = 'flex'; header.querySelector('.playlist-name').textContent = 'Search Results'; }
+  }
+  if (!query && currentPlaylist === '__all__') {
+    // Clear search → back to playlists
+    showPlaylist(null);
+    return;
+  }
+  renderTrackList();
+}
 
 function renderPlaylists() {
   const container = document.getElementById('playlistList');
@@ -1401,13 +1448,21 @@ function renderPlaylists() {
   const allDiv = document.createElement('div');
   allDiv.className = 'playlist-item' + (!currentPlaylist ? ' active' : '');
   allDiv.innerHTML = `<span>📁 All Tracks</span><span class="pl-count">${allTracks.length}</span>`;
-  allDiv.onclick = () => showPlaylist(null);
+  allDiv.onclick = () => showPlaylist('__all__');
   container.appendChild(allDiv);
   
+  const featured = {
+    'Gatsby': '🆕 Fresh Downloads',
+    'showcaseall': '⭐ Best Of',
+    'SoulSeek': '💎 Deep Cuts',
+    '120-135': '🔥 Main Set BPM'
+  };
   rbPlaylists.forEach(p => {
     const div = document.createElement('div');
-    div.className = 'playlist-item' + (currentPlaylist === p.name ? ' active' : '');
-    div.innerHTML = `<span>🎵 ${p.name}</span><span class="pl-count">${p.tracks.length}</span>`;
+    const isFeatured = featured[p.name];
+    div.className = 'playlist-item' + (currentPlaylist === p.name ? ' active' : '') + (isFeatured ? ' featured' : '');
+    const badge = isFeatured ? `<span class="pl-badge">${isFeatured}</span>` : '';
+    div.innerHTML = `<span>🎵 ${p.name}${badge}</span><span class="pl-count">${p.tracks.length}</span>`;
     div.onclick = () => showPlaylist(p.name);
     container.appendChild(div);
   });
@@ -1445,6 +1500,10 @@ async function loadToDeck(deckId, encodedName) {
     document.getElementById('status').textContent = 'Loaded to Deck ' + (deckId + 1);
     saveDeckState();
     updateUI();
+    // Close mobile browser overlay after loading
+    if (typeof mobileBrowserOpen !== 'undefined' && mobileBrowserOpen && typeof toggleMobileBrowser === 'function') {
+      toggleMobileBrowser();
+    }
   } catch(e) {
     console.error('Load error:', e);
     showError('Failed to load: ' + cleanTrackName(name) + ' — ' + (e.message || 'Unknown error'));
@@ -2192,54 +2251,7 @@ async function loadTrackBPMs() {
   renderTrackList();
 }
 
-// Override renderTrackList to include BPM
-const _originalRenderTrackList = renderTrackList;
-renderTrackList = function() {
-  const sorted = [...allTracks];
-  if (currentSort === 'name') sorted.sort((a, b) => a.name.localeCompare(b.name));
-  else if (currentSort === 'size') sorted.sort((a, b) => b.size - a.size);
-  else sorted.sort((a, b) => b.mtime - a.mtime);
-  const list = document.getElementById('trackList');
-  const query = (document.getElementById('trackSearch').value || '').toLowerCase();
-  list.innerHTML = '';
-
-  // Get reference BPM from playing deck
-  let refBPM = null;
-  for (let i = 0; i < 2; i++) {
-    if (decks[i].playing && decks[i].bpm) { refBPM = decks[i].bpm; break; }
-  }
-  if (!refBPM) {
-    for (let i = 0; i < 2; i++) { if (decks[i].bpm) { refBPM = decks[i].bpm; break; } }
-  }
-
-  sorted.forEach(t => {
-    const cn = cleanTrackName(t.name);
-    if (query && !cn.toLowerCase().includes(query)) return;
-    const div = document.createElement('div');
-    div.className = 'track-item';
-    div.draggable = true;
-    div.dataset.trackName = encodeURIComponent(t.name);
-
-    // BPM indicator
-    const bpm = trackBPMCache[t.name];
-    let bpmHtml = '';
-    if (bpm) {
-      let colorClass = 'bpm-neutral';
-      if (refBPM) {
-        const diff = Math.abs(bpm - refBPM);
-        if (diff < 3) colorClass = 'bpm-green';
-        else if (diff < 8) colorClass = 'bpm-yellow';
-        else colorClass = 'bpm-red';
-      }
-      bpmHtml = `<span class="track-bpm ${colorClass}">${bpm.toFixed(0)}</span>`;
-    }
-
-    div.innerHTML = `<span class="name" title="${t.name}">${cn}</span>${bpmHtml}<div class="load-btns"><button class="load-btn d1" onclick="event.stopPropagation();loadToDeck(0,'${encodeURIComponent(t.name)}')">D1</button><button class="load-btn d2" onclick="event.stopPropagation();loadToDeck(1,'${encodeURIComponent(t.name)}')">D2</button></div>`;
-    div.ondblclick = () => { const freeDeck = !decks[0].buffer ? 0 : !decks[1].buffer ? 1 : 0; loadToDeck(freeDeck, encodeURIComponent(t.name)); };
-    div.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', encodeURIComponent(t.name)); e.dataTransfer.effectAllowed = 'copy'; });
-    list.appendChild(div);
-  });
-};
+// (BPM color-coding merged into main renderTrackList)
 
 // Load BPMs after tracks load (with delay to not slow initial load)
 setTimeout(() => { if (allTracks.length > 0) loadTrackBPMs(); }, 2000);
@@ -3715,7 +3727,7 @@ function animate() {
       document.getElementById('wfTime' + (i + 1)).textContent = formatTime(t);
     }
     // Smooth BPM animation
-    if (decks[i].bpm) animateNumber('bpm' + (i + 1), decks[i].bpm, 1);
+    if (decks[i].bpm) animateNumber('bpm' + (i + 1), decks[i].bpm * decks[i].playbackRate, 1);
     // Update duration display
     const durEl = document.getElementById('dur' + (i + 1));
     if (durEl) {
@@ -3738,12 +3750,25 @@ function animate() {
     else if (d1.playing) { masterBpm = d1.bpm; }
     mbEl.textContent = masterBpm > 0 ? (masterBpm * (d0.playing ? d0.playbackRate : d1.playing ? d1.playbackRate : 1)).toFixed(1) + ' BPM' : '--- BPM';
   }
-  // Sync maintenance: re-sync if active and flash if drifted
+  // Sync maintenance: continuously correct tempo + beat phase
   for (let si = 0; si < 2; si++) {
-    if (syncActive[si] && decks[si].playing && decks[1 - si].bpm > 0) {
-      const ratio = decks[1 - si].bpm / decks[si].bpm;
+    if (syncActive[si] && decks[si].playing && decks[1 - si].bpm > 0 && decks[si].bpm > 0) {
+      const other = decks[1 - si];
+      // Keep tempo locked
+      const ratio = other.bpm / decks[si].bpm;
       const currentRatio = decks[si].playbackRate;
-      if (Math.abs(currentRatio - ratio) > 0.005) {
+      if (Math.abs(currentRatio - ratio) > 0.002) {
+        decks[si].sync(other);
+      }
+      // Beat phase correction (nudge if drifting)
+      const beatLen = 60 / (decks[si].bpm * decks[si].playbackRate);
+      const myPhase = (decks[si].getCurrentTime() % beatLen) / beatLen;
+      const otherBeatLen = 60 / (other.bpm * other.playbackRate);
+      const otherPhase = (other.getCurrentTime() % otherBeatLen) / otherBeatLen;
+      let phaseDiff = myPhase - otherPhase;
+      if (phaseDiff > 0.5) phaseDiff -= 1;
+      if (phaseDiff < -0.5) phaseDiff += 1;
+      if (Math.abs(phaseDiff) > 0.05) {
         document.getElementById('sync' + (si + 1)).classList.add('sync-flash');
       } else {
         document.getElementById('sync' + (si + 1)).classList.remove('sync-flash');
@@ -3791,6 +3816,24 @@ loadSessions();
   setTimeout(() => { splash.style.pointerEvents = 'none'; splash.classList.add('hidden'); }, 1200);
   setTimeout(() => { if (splash.parentNode) splash.parentNode.removeChild(splash); }, 1900);
 })();
+
+// Cmd+Shift+R / Ctrl+Shift+R — replay splash screen (easter egg)
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'r') {
+    e.preventDefault();
+    let splash = document.getElementById('splashScreen');
+    if (splash) { splash.remove(); }
+    splash = document.createElement('div');
+    splash.className = 'splash-screen';
+    splash.id = 'splashScreen';
+    splash.innerHTML = `<div class="splash-content"><div class="splash-logo">PIONEER</div><div class="splash-model">XDJ-RR</div><div class="splash-loader"><div class="splash-loader-bar"></div></div></div>`;
+    document.body.prepend(splash);
+    // Force reflow so animation restarts
+    splash.offsetHeight;
+    setTimeout(() => { splash.style.pointerEvents = 'none'; splash.classList.add('hidden'); }, 1200);
+    setTimeout(() => { if (splash.parentNode) splash.remove(); }, 1900);
+  }
+});
 
 // ==================== REACTIVE BACKGROUND VISUALIZATION ====================
 (function initBgVisualization() {
