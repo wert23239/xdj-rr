@@ -1255,7 +1255,7 @@ function updateUI() {
     const n = i + 1;
     document.getElementById('play' + n).classList.toggle('active', d.playing);
     document.getElementById('play' + n).textContent = d.playing ? '⏸ PAUSE' : '▶ PLAY';
-    document.getElementById('bpm' + n).textContent = d.bpm ? d.bpm.toFixed(1) : '---.-';
+    document.getElementById('bpm' + n).textContent = d.bpm ? (d.bpm * d.playbackRate).toFixed(1) : '---.-';
     document.getElementById('wfTitle' + n).textContent = d.trackName || 'DECK ' + n;
     document.getElementById('deckEl' + n).classList.toggle('playing-glow', d.playing);
   }
@@ -1750,10 +1750,12 @@ function tapBPM(deckId) {
   if (taps.length >= 2) {
     let totalInterval = 0;
     for (let i = 1; i < taps.length; i++) totalInterval += taps[i] - taps[i-1];
-    const bpm = 60000 / (totalInterval / (taps.length - 1));
-    decks[deckId].bpm = Math.round(bpm * 10) / 10;
-    document.getElementById('bpm' + (deckId + 1)).textContent = decks[deckId].bpm.toFixed(1);
-    document.getElementById('tapInfo' + (deckId + 1)).textContent = decks[deckId].bpm.toFixed(1) + ' BPM (' + taps.length + ' taps)';
+    const tappedBpm = 60000 / (totalInterval / (taps.length - 1));
+    // Tap gives us the effective BPM — store base BPM (before tempo adjustment)
+    decks[deckId].bpm = Math.round((tappedBpm / decks[deckId].playbackRate) * 10) / 10;
+    const effectiveBpm = (decks[deckId].bpm * decks[deckId].playbackRate).toFixed(1);
+    document.getElementById('bpm' + (deckId + 1)).textContent = effectiveBpm;
+    document.getElementById('tapInfo' + (deckId + 1)).textContent = effectiveBpm + ' BPM (' + taps.length + ' taps)';
   } else {
     document.getElementById('tapInfo' + (deckId + 1)).textContent = 'tap again...';
   }
@@ -3785,6 +3787,12 @@ function animate() {
   updateBPMPulse();
   updateBeatFlash();
   updateXfadeColor();
+  // Keep yellow BPM displays in sync with tempo changes
+  for (let i = 0; i < 2; i++) {
+    const d = decks[i];
+    const el = document.getElementById('bpm' + (i + 1));
+    el.textContent = d.bpm ? (d.bpm * d.playbackRate).toFixed(1) : '---.-';
+  }
   checkLoops();
   updateUI();
   updateDeckStatusDots();
