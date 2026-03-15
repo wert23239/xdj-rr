@@ -585,8 +585,18 @@ class Deck {
   /** Toggles play/pause */
   togglePlay() { if (this.playing) this.stop(); else this.play(); }
 
-  /** Returns to the cue point */
-  cue() { this.stop(); this.offset = this.cuePoint; }
+  /** Sets cue point at current position if playing, or returns to cue point if stopped */
+  cue() {
+    if (this.playing) {
+      // Set cue point to current position and stop
+      this.cuePoint = this.getCurrentTime();
+      this.stop();
+      this.offset = this.cuePoint;
+    } else {
+      // Already stopped — jump to cue point
+      this.offset = this.cuePoint;
+    }
+  }
 
   /**
    * Gets the current playback time in seconds.
